@@ -45,12 +45,12 @@ def main():
         mostrar_menu()
         
         try:
-            opcion = int(input("Seleccione una opción (0-7): "))
+            opcion = int(input("Seleccione una opción (0-10): "))
             
             if opcion == 0:
                 print("¡Gracias por usar el programa! Hasta luego.")
                 sys.exit(0)
-            elif 1 <= opcion <= 7:
+            elif 1 <= opcion <= 10:
                 ejecutar_ejercicio(opcion)
             else:
                 print("Opción inválida. Por favor, elija un número entre 0 y 10.")
