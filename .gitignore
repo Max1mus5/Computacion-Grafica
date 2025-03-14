@@ -223,9 +223,9 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
-.\ejercicio1EnClase.py
-.\ejercicioEnClase.py
-.\image.png
-.\image1.png
-.\numpyExcercise.py
-.\sumarImagenes.py
+ejercicio1EnClase.py
+ejercicioEnClase.py
+image.png
+image1.png
+numpyExcercise.py
+sumarImagenes.py
