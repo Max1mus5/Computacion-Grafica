@@ -36,6 +36,9 @@ def mostrar_menu():
     print("5. Indexación y Segmentación")
     print("6. Generación de Datos Aleatorios")
     print("7. Funciones de Agregación")
+    print("8. Creación de Arrays con Funciones de Fábrica")
+    print("9. Operaciones de Alineación y Broadcasting")
+    print("10. Funciones de Transformación y Redimensionamiento")
     print("0. Salir")
     print("=" * 50)
 
