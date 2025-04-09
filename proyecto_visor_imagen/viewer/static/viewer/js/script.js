@@ -48,6 +48,39 @@ document.addEventListener('DOMContentLoaded', function() {
           });
       }
       
+      // Initialize refresh histogram button
+      const refreshHistogramBtn = document.getElementById('refreshHistogramBtn');
+      if (refreshHistogramBtn) {
+          refreshHistogramBtn.addEventListener('click', function() {
+              // Mostrar un indicador de carga en el botón
+              const originalText = refreshHistogramBtn.innerHTML;
+              refreshHistogramBtn.innerHTML = `
+                  <svg class="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Refreshing...
+              `;
+              
+              // Generar el histograma con la imagen actual
+              if (currentImageData) {
+                  console.log("Refreshing histogram manually");
+                  generateHistogram(currentImageData)
+                      .then(() => {
+                          // Restaurar el texto original del botón
+                          refreshHistogramBtn.innerHTML = originalText;
+                      })
+                      .catch(error => {
+                          console.error("Error refreshing histogram:", error);
+                          refreshHistogramBtn.innerHTML = originalText;
+                      });
+              } else {
+                  console.warn("No image data available for histogram");
+                  refreshHistogramBtn.innerHTML = originalText;
+              }
+          });
+      }
+      
       // Initialize save image button
       const downloadBtn = document.getElementById('downloadBtn');
       if (downloadBtn) {
@@ -122,7 +155,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Generate histogram when image is loaded
       previewImage.onload = function() {
           console.log("Image loaded successfully");
-          generateHistogram(imageData);
+          generateHistogram(imageData)
+              .then(() => console.log("Histogram generated successfully"))
+              .catch(error => console.error("Error generating histogram:", error));
       };
       
       // Handle image load error
@@ -480,7 +515,9 @@ document.addEventListener('DOMContentLoaded', function() {
           previewImage.src = data.processed_image;
           
           // Generate new histogram
-          generateHistogram(data.processed_image);
+          generateHistogram(data.processed_image)
+              .then(() => console.log("Histogram updated after filter"))
+              .catch(error => console.error("Error updating histogram:", error));
           
           showLoading(false);
       })
@@ -492,91 +529,116 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function generateHistogram(imageData) {
-      // Create form data for histogram generation
-      const formData = new FormData();
-      formData.append('image_data', imageData);
-      
-      // Call API to generate histogram
-      fetch('/generate-histogram/', {
-          method: 'POST',
-          body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-          if (data.error) {
-              console.error('Error:', data.error);
+      // Devolver una promesa para poder encadenar con .then()
+      return new Promise((resolve, reject) => {
+          // Verificar que el canvas del histograma exista
+          if (!histogramCanvas) {
+              console.error('Histogram canvas not found');
+              reject(new Error('Histogram canvas not found'));
               return;
           }
           
-          // Display the histogram image
-          const ctx = histogramCanvas.getContext('2d');
+          // Create form data for histogram generation
+          const formData = new FormData();
+          formData.append('image_data', imageData);
           
-          // Destroy existing chart if it exists
-          if (histogramChart) {
-              histogramChart.destroy();
-          }
-          
-          // Create new chart
-          histogramChart = new Chart(ctx, {
-              type: 'line',
-              data: {
-                  labels: Array.from({ length: 256 }, (_, i) => i),
-                  datasets: [
-                      {
-                          label: 'Luminance',
-                          data: data.histogram_data.luminance,
-                          borderColor: 'white',
-                          borderWidth: 1,
-                          pointRadius: 0,
-                          fill: false
-                      },
-                      {
-                          label: 'Red',
-                          data: data.histogram_data.red,
-                          borderColor: 'rgba(255, 99, 132, 1)',
-                          borderWidth: 1,
-                          pointRadius: 0,
-                          fill: false
-                      },
-                      {
-                          label: 'Green',
-                          data: data.histogram_data.green,
-                          borderColor: 'rgba(75, 192, 192, 1)',
-                          borderWidth: 1,
-                          pointRadius: 0,
-                          fill: false
-                      },
-                      {
-                          label: 'Blue',
-                          data: data.histogram_data.blue,
-                          borderColor: 'rgba(54, 162, 235, 1)',
-                          borderWidth: 1,
-                          pointRadius: 0,
-                          fill: false
-                      }
-                  ]
-              },
-              options: {
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                      x: {
-                          display: false
-                      },
-                      y: {
-                          display: false
-                      }
-                  },
-                  plugins: {
-                      legend: {
-                          display: false
-                      }
-                  }
+          // Call API to generate histogram
+          fetch('/generate-histogram/', {
+              method: 'POST',
+              body: formData
+          })
+          .then(response => {
+              if (!response.ok) {
+                  throw new Error(`HTTP error! status: ${response.status}`);
               }
+              return response.json();
+          })
+          .then(data => {
+              if (data.error) {
+                  console.error('Error:', data.error);
+                  reject(new Error(data.error));
+                  return;
+              }
+              
+              try {
+                  // Display the histogram image
+                  const ctx = histogramCanvas.getContext('2d');
+                  
+                  // Destroy existing chart if it exists
+                  if (histogramChart) {
+                      histogramChart.destroy();
+                  }
+                  
+                  // Create new chart
+                  histogramChart = new Chart(ctx, {
+                      type: 'line',
+                      data: {
+                          labels: Array.from({ length: 256 }, (_, i) => i),
+                          datasets: [
+                              {
+                                  label: 'Luminance',
+                                  data: data.histogram_data.luminance,
+                                  borderColor: 'white',
+                                  borderWidth: 1,
+                                  pointRadius: 0,
+                                  fill: false
+                              },
+                              {
+                                  label: 'Red',
+                                  data: data.histogram_data.red,
+                                  borderColor: 'rgba(255, 99, 132, 1)',
+                                  borderWidth: 1,
+                                  pointRadius: 0,
+                                  fill: false
+                              },
+                              {
+                                  label: 'Green',
+                                  data: data.histogram_data.green,
+                                  borderColor: 'rgba(75, 192, 192, 1)',
+                                  borderWidth: 1,
+                                  pointRadius: 0,
+                                  fill: false
+                              },
+                              {
+                                  label: 'Blue',
+                                  data: data.histogram_data.blue,
+                                  borderColor: 'rgba(54, 162, 235, 1)',
+                                  borderWidth: 1,
+                                  pointRadius: 0,
+                                  fill: false
+                              }
+                          ]
+                      },
+                      options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          scales: {
+                              x: {
+                                  display: false
+                              },
+                              y: {
+                                  display: false
+                              }
+                          },
+                          plugins: {
+                              legend: {
+                                  display: false
+                              }
+                          }
+                      }
+                  });
+                  
+                  // Resolver la promesa cuando el histograma se ha generado
+                  resolve();
+              } catch (error) {
+                  console.error('Error creating histogram chart:', error);
+                  reject(error);
+              }
+          })
+          .catch(error => {
+              console.error('Error generating histogram:', error);
+              reject(error);
           });
-      })
-      .catch(error => {
-          console.error('Error:', error);
       });
   }
   
@@ -586,7 +648,9 @@ document.addEventListener('DOMContentLoaded', function() {
       currentImageData = originalImageData;
       
       // Generate histogram for original image
-      generateHistogram(originalImageData);
+      generateHistogram(originalImageData)
+          .then(() => console.log("Histogram reset to original image"))
+          .catch(error => console.error("Error resetting histogram:", error));
       
       // Remove active class from all filter options
       filterOptions.forEach(opt => opt.classList.remove('active'));
