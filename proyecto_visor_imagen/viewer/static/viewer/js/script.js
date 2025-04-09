@@ -584,12 +584,43 @@ document.addEventListener('DOMContentLoaded', function() {
                           // Leer el archivo como Data URL
                           const reader = new FileReader();
                           reader.onload = function(e) {
-                              // Guardar los datos de la imagen
-                              secondImageData = e.target.result;
+                              // Comprimir la imagen antes de guardarla
+                              const img = new Image();
+                              img.onload = function() {
+                                  // Crear un canvas para comprimir la imagen
+                                  const canvas = document.createElement('canvas');
+                                  
+                                  // Calcular el nuevo tamaño manteniendo la proporción
+                                  let width = img.width;
+                                  let height = img.height;
+                                  const maxSize = 1200; // Tamaño máximo para cualquier dimensión
+                                  
+                                  if (width > height && width > maxSize) {
+                                      height = Math.round(height * (maxSize / width));
+                                      width = maxSize;
+                                  } else if (height > maxSize) {
+                                      width = Math.round(width * (maxSize / height));
+                                      height = maxSize;
+                                  }
+                                  
+                                  // Establecer el tamaño del canvas
+                                  canvas.width = width;
+                                  canvas.height = height;
+                                  
+                                  // Dibujar la imagen en el canvas con el nuevo tamaño
+                                  const ctx = canvas.getContext('2d');
+                                  ctx.drawImage(img, 0, 0, width, height);
+                                  
+                                  // Obtener la imagen comprimida como Data URL (calidad 0.8)
+                                  secondImageData = canvas.toDataURL('image/jpeg', 0.8);
+                                  
+                                  // Mostrar vista previa
+                                  secondImagePreviewImg.src = secondImageData;
+                                  secondImagePreview.classList.remove('hidden');
+                              };
                               
-                              // Mostrar vista previa
-                              secondImagePreviewImg.src = secondImageData;
-                              secondImagePreview.classList.remove('hidden');
+                              // Cargar la imagen original
+                              img.src = e.target.result;
                           };
                           reader.readAsDataURL(file);
                       }
@@ -635,45 +666,101 @@ document.addEventListener('DOMContentLoaded', function() {
       // Show loading spinner
       showLoading(true);
       
-      // Create form data
-      const formData = new FormData();
-      formData.append('image_data', currentImageData);
-      formData.append('filter_type', filterType);
+      // Comprimir la imagen actual si es necesario
+      const compressImage = (dataUrl) => {
+          return new Promise((resolve, reject) => {
+              const img = new Image();
+              img.onload = function() {
+                  // Si la imagen es pequeña, no la comprimimos
+                  if (img.width <= 1200 && img.height <= 1200) {
+                      resolve(dataUrl);
+                      return;
+                  }
+                  
+                  // Crear un canvas para comprimir la imagen
+                  const canvas = document.createElement('canvas');
+                  
+                  // Calcular el nuevo tamaño manteniendo la proporción
+                  let width = img.width;
+                  let height = img.height;
+                  const maxSize = 1200; // Tamaño máximo para cualquier dimensión
+                  
+                  if (width > height && width > maxSize) {
+                      height = Math.round(height * (maxSize / width));
+                      width = maxSize;
+                  } else if (height > maxSize) {
+                      width = Math.round(width * (maxSize / height));
+                      height = maxSize;
+                  }
+                  
+                  // Establecer el tamaño del canvas
+                  canvas.width = width;
+                  canvas.height = height;
+                  
+                  // Dibujar la imagen en el canvas con el nuevo tamaño
+                  const ctx = canvas.getContext('2d');
+                  ctx.drawImage(img, 0, 0, width, height);
+                  
+                  // Obtener la imagen comprimida como Data URL (calidad 0.85)
+                  resolve(canvas.toDataURL('image/jpeg', 0.85));
+              };
+              
+              img.onerror = function() {
+                  reject(new Error('Error al cargar la imagen para compresión'));
+              };
+              
+              img.src = dataUrl;
+          });
+      };
       
-      // Add parameters to form data
-      for (const key in params) {
-          formData.append(key, params[key]);
-      }
-      
-      // Call API to process image
-      fetch('/process-image/', {
-          method: 'POST',
-          body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-          if (data.error) {
-              console.error('Error:', data.error);
-              alert('Error processing image: ' + data.error);
-              return;
-          }
-          
-          // Update current image data and preview
-          currentImageData = data.processed_image;
-          previewImage.src = data.processed_image;
-          
-          // Generate new histogram
-          generateHistogram(data.processed_image)
-              .then(() => console.log("Histogram updated after filter"))
-              .catch(error => console.error("Error updating histogram:", error));
-          
-          showLoading(false);
-      })
-      .catch(error => {
-          console.error('Error:', error);
-          alert('Error processing image: ' + error);
-          showLoading(false);
-      });
+      // Comprimir la imagen actual antes de enviarla
+      compressImage(currentImageData)
+          .then(compressedImageData => {
+              // Create form data
+              const formData = new FormData();
+              formData.append('image_data', compressedImageData);
+              formData.append('filter_type', filterType);
+              
+              // Add parameters to form data
+              for (const key in params) {
+                  formData.append(key, params[key]);
+              }
+              
+              // Call API to process image
+              return fetch('/process-image/', {
+                  method: 'POST',
+                  body: formData
+              });
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.error) {
+                  console.error('Error:', data.error);
+                  alert('Error processing image: ' + data.error);
+                  showLoading(false);
+                  return;
+              }
+              
+              // Update current image data and preview
+              currentImageData = data.processed_image;
+              previewImage.src = data.processed_image;
+              
+              // Generate new histogram
+              generateHistogram(data.processed_image)
+                  .then(() => {
+                      console.log("Histogram updated after filter");
+                      showLoading(false);
+                  })
+                  .catch(error => {
+                      console.error("Error updating histogram:", error);
+                      showLoading(false);
+                  });
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              alert('Error processing image: ' + error);
+              showLoading(false);
+          });
   }
   
   function generateHistogram(imageData) {
