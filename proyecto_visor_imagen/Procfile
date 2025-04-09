@@ -1,0 +1,1 @@
+web: gunicorn proyecto_visor_imagen.wsgi_production --log-file -

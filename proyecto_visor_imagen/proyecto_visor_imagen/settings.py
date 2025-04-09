@@ -23,9 +23,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-%+*x8lp+p%yj5=rrxchfynqkzj%#h^(m#@y+%fqy9bujy+0yzs'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Configuración para producción
+DEBUG = False
 
-ALLOWED_HOSTS = ['work-1-sdetvcvsrhpmjmcj.prod-runtime.all-hands.dev', 'work-2-sdetvcvsrhpmjmcj.prod-runtime.all-hands.dev', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['work-1-sdetvcvsrhpmjmcj.prod-runtime.all-hands.dev', 'work-2-sdetvcvsrhpmjmcj.prod-runtime.all-hands.dev', 'localhost', '127.0.0.1', '*']
 
 
 # Application definition
@@ -118,10 +119,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
-# Comentamos esta línea para evitar la advertencia, ya que no estamos usando este directorio
-# STATICFILES_DIRS = [
-#     BASE_DIR / 'static',
-# ]
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Directorios adicionales donde buscar archivos estáticos
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
