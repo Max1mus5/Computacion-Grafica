@@ -26,7 +26,6 @@ Esta aplicación está pensada para ser utilizada en entornos educativos, espec�
 - **Python 3.x**: Lenguaje de programación principal para el backend
 - **NumPy**: Biblioteca para operaciones numéricas, utilizada para manipulación de matrices de imágenes
 - **Matplotlib**: Biblioteca para generación de gráficos, utilizada para crear histogramas
-- **Pillow (PIL)**: Biblioteca para procesamiento de imágenes en Python
 - **scikit-image**: Biblioteca para algoritmos avanzados de procesamiento de imágenes
 
 #### Frontend
@@ -126,7 +125,6 @@ La aplicación ofrece los siguientes filtros y transformaciones:
 
 3. **Transformaciones**:
    - Rotación
-   - Espejo (horizontal/vertical)
    - Zoom
 
 4. **Efectos especiales**:
@@ -136,7 +134,7 @@ La aplicación ofrece los siguientes filtros y transformaciones:
 
 5. **Operaciones avanzadas**:
    - Fusión de imágenes (con transparencia o marca de agua)
-   - Creación de mosaicos con múltiples imágenes
+   - Creación de mosaicos con múltiples imágenes (en desarrollo)
 
 ### Implementación de Funciones de Edición
 
@@ -423,18 +421,6 @@ Además, se implementó la compresión de imágenes en el cliente antes de envia
 
 ## 9. Información Adicional
 
-### Requisitos del Sistema
-
-- **Servidor**:
-  - Python 3.8 o superior
-  - Django 5.2
-  - NumPy, Matplotlib, Pillow, scikit-image
-  - Memoria RAM: 2GB mínimo recomendado
-
-- **Cliente**:
-  - Navegador web moderno con soporte para JavaScript ES6
-  - Conexión a Internet estable
-
 ### Instalación y Configuración
 
 1. Clonar el repositorio:
@@ -462,20 +448,3 @@ Además, se implementó la compresión de imágenes en el cliente antes de envia
 
 - Implementación de más filtros y efectos
 - Soporte para edición de imágenes por lotes
-- Integración con servicios de almacenamiento en la nube
-- Implementación de un sistema de usuarios para guardar proyectos
-- Optimización del rendimiento para dispositivos móviles
-
-### Contribuciones
-
-Las contribuciones al proyecto son bienvenidas. Por favor, siga estos pasos:
-
-1. Haga un fork del repositorio
-2. Cree una rama para su función (`git checkout -b feature/nueva-funcion`)
-3. Realice sus cambios y haga commit (`git commit -m 'Añadir nueva función'`)
-4. Envíe sus cambios (`git push origin feature/nueva-funcion`)
-5. Abra una solicitud de extracción
-
-### Licencia
-
-Este proyecto está licenciado bajo la Licencia MIT. Consulte el archivo LICENSE para obtener más información.

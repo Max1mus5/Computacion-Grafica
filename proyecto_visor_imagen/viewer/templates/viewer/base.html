@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Editor</title>
+    <title>JR Editor</title>
     {% load static %}
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'viewer/css/styles.css' %}">
+    <link rel="icon" type="image/png" href="{% static 'viewer/imgs/icon.png' %}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% block extra_head %}{% endblock %}
 </head>
@@ -24,7 +25,7 @@
     
     <footer class="py-4 mt-8 text-center text-gray-400 text-sm">
         <div class="container">
-            © {% now "Y" %} Image Editor | <a href="/docs/" class="text-blue-400 hover:text-blue-300">Ver Documentación</a>
+            © {% now "Y" %} Jeronimo Riveros | <a href="/docs/" class="text-blue-400 hover:text-blue-300">Ver Documentación</a>
         </div>
     </footer>
     
