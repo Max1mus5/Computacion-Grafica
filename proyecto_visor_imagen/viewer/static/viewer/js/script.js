@@ -189,7 +189,32 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function showFilterControls(filterType) {
-      // Remove any existing filter control elements
+      // Hide all predefined filter controls
+      const predefinedControls = document.querySelectorAll('.filter-controls');
+      predefinedControls.forEach(control => {
+          control.classList.add('hidden');
+      });
+      
+      // Check if there's a predefined control for this filter type
+      let controlId = `${filterType}Controls`;
+      
+      // Special case for 4mosaic
+      if (filterType === '4mosaic') {
+          controlId = 'fourMosaicControls';
+      }
+      
+      const predefinedControl = document.getElementById(controlId);
+      if (predefinedControl) {
+          // Show the predefined control
+          predefinedControl.classList.remove('hidden');
+          
+          // Add event listeners for this control
+          addControlEventListeners(filterType);
+          return;
+      }
+      
+      // If no predefined control exists, create a dynamic one
+      // Remove any existing dynamic filter control elements
       const existingControls = document.getElementById('filterControls');
       if (existingControls) {
           existingControls.remove();
