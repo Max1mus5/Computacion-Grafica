@@ -195,25 +195,37 @@ document.addEventListener('DOMContentLoaded', function() {
           control.classList.add('hidden');
       });
       
-      // Check if there's a predefined control for this filter type
-      let controlId = `${filterType}Controls`;
-      
       // Special case for 4mosaic
       if (filterType === '4mosaic') {
-          controlId = 'fourMosaicControls';
+          const mosaicControl = document.getElementById('fourMosaicControls');
+          if (mosaicControl) {
+              mosaicControl.classList.remove('hidden');
+              
+              // Initialize the mosaic control
+              initializeMosaicControl();
+              
+              // Set the current image preview
+              const currentImagePreview = document.getElementById('currentImagePreview');
+              if (currentImagePreview && currentImageData) {
+                  currentImagePreview.src = currentImageData;
+              }
+              
+              return;
+          }
       }
       
-      const predefinedControl = document.getElementById(controlId);
-      if (predefinedControl) {
-          // Show the predefined control
-          predefinedControl.classList.remove('hidden');
-          
-          // Add event listeners for this control
-          addControlEventListeners(filterType);
-          return;
+      // Special case for merge
+      if (filterType === 'merge') {
+          const mergeControl = document.getElementById('mergeControls');
+          if (mergeControl) {
+              mergeControl.classList.remove('hidden');
+              
+              // Initialize the merge control
+              initializeMergeControl();
+              return;
+          }
       }
       
-      // If no predefined control exists, create a dynamic one
       // Remove any existing dynamic filter control elements
       const existingControls = document.getElementById('filterControls');
       if (existingControls) {
@@ -420,172 +432,306 @@ document.addEventListener('DOMContentLoaded', function() {
       addControlEventListeners(filterType);
   }
   
-  function addControlEventListeners(filterType) {
-      switch (filterType) {
-          case '4mosaic':
-              console.log("Initializing 4mosaic controls");
-              
-              // Elementos del DOM
-              const applyMosaicBtn = document.getElementById('applyMosaic');
-              const currentImagePreview = document.getElementById('currentImagePreview');
-              const frameSizeSlider = document.getElementById('frameSizeSlider');
-              const frameSizeValue = document.getElementById('frameSizeValue');
-              const frameColorRadios = document.getElementsByName('frameColor');
-              
-              // Elementos para las imágenes adicionales
-              const image1Input = document.getElementById('image1Input');
-              const image2Input = document.getElementById('image2Input');
-              const image3Input = document.getElementById('image3Input');
-              const selectImage1Btn = document.getElementById('selectImage1Btn');
-              const selectImage2Btn = document.getElementById('selectImage2Btn');
-              const selectImage3Btn = document.getElementById('selectImage3Btn');
-              const image1Preview = document.getElementById('image1Preview');
-              const image2Preview = document.getElementById('image2Preview');
-              const image3Preview = document.getElementById('image3Preview');
-              
-              // Variables para almacenar los datos de las imágenes
-              let image1Data = null;
-              let image2Data = null;
-              let image3Data = null;
-              
-              // Mostrar la imagen actual en la vista previa
-              if (currentImagePreview && currentImageData) {
-                  console.log("Setting current image preview");
-                  currentImagePreview.src = currentImageData;
-              } else {
-                  console.log("Current image preview element or data not found", 
-                              currentImagePreview ? "Element exists" : "Element missing",
-                              currentImageData ? "Data exists" : "Data missing");
-              }
-              
-              // Actualizar el valor del tamaño del marco
-              if (frameSizeSlider && frameSizeValue) {
-                  frameSizeSlider.addEventListener('input', function() {
-                      frameSizeValue.textContent = this.value;
-                  });
-              }
-              
-              // Función para manejar la selección de imágenes
-              const setupImageUpload = (inputElement, selectButton, previewContainer, imageIndex) => {
-                  if (selectButton && inputElement) {
-                      selectButton.addEventListener('click', function() {
-                          inputElement.click();
-                      });
-                  }
-                  
-                  if (inputElement && previewContainer) {
-                      inputElement.addEventListener('change', function() {
-                          if (this.files && this.files[0]) {
-                              const file = this.files[0];
+  // Función para inicializar el control de mosaico
+  function initializeMosaicControl() {
+      console.log("Initializing mosaic control");
+      
+      // Elementos del DOM
+      const applyMosaicBtn = document.getElementById('applyMosaic');
+      const currentImagePreview = document.getElementById('currentImagePreview');
+      const frameSizeSlider = document.getElementById('frameSizeSlider');
+      const frameSizeValue = document.getElementById('frameSizeValue');
+      const frameColorRadios = document.getElementsByName('frameColor');
+      
+      // Elementos para las imágenes adicionales
+      const image1Input = document.getElementById('image1Input');
+      const image2Input = document.getElementById('image2Input');
+      const image3Input = document.getElementById('image3Input');
+      const selectImage1Btn = document.getElementById('selectImage1Btn');
+      const selectImage2Btn = document.getElementById('selectImage2Btn');
+      const selectImage3Btn = document.getElementById('selectImage3Btn');
+      const image1Preview = document.getElementById('image1Preview');
+      const image2Preview = document.getElementById('image2Preview');
+      const image3Preview = document.getElementById('image3Preview');
+      
+      // Variables para almacenar los datos de las imágenes
+      let image1Data = null;
+      let image2Data = null;
+      let image3Data = null;
+      
+      // Mostrar la imagen actual en la vista previa
+      if (currentImagePreview && currentImageData) {
+          console.log("Setting current image preview");
+          currentImagePreview.src = currentImageData;
+      }
+      
+      // Actualizar el valor del tamaño del marco
+      if (frameSizeSlider && frameSizeValue) {
+          frameSizeSlider.addEventListener('input', function() {
+              frameSizeValue.textContent = this.value;
+          });
+      }
+      
+      // Función para manejar la selección de imágenes
+      const setupImageUpload = (inputElement, selectButton, previewContainer, imageIndex) => {
+          if (selectButton && inputElement) {
+              selectButton.addEventListener('click', function() {
+                  inputElement.click();
+              });
+          }
+          
+          if (inputElement && previewContainer) {
+              inputElement.addEventListener('change', function() {
+                  if (this.files && this.files[0]) {
+                      const file = this.files[0];
+                      
+                      // Validar tipo de archivo
+                      if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
+                          alert('Please select a JPEG or PNG image');
+                          return;
+                      }
+                      
+                      // Leer el archivo como Data URL
+                      const reader = new FileReader();
+                      reader.onload = function(e) {
+                          // Comprimir la imagen antes de guardarla
+                          const img = new Image();
+                          img.onload = function() {
+                              // Crear un canvas para comprimir la imagen
+                              const canvas = document.createElement('canvas');
                               
-                              // Validar tipo de archivo
-                              if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
-                                  alert('Please select a JPEG or PNG image');
-                                  return;
+                              // Calcular el nuevo tamaño manteniendo la proporción
+                              let width = img.width;
+                              let height = img.height;
+                              const maxSize = 800; // Tamaño máximo para cualquier dimensión
+                              
+                              if (width > height && width > maxSize) {
+                                  height = Math.round(height * (maxSize / width));
+                                  width = maxSize;
+                              } else if (height > maxSize) {
+                                  width = Math.round(width * (maxSize / height));
+                                  height = maxSize;
                               }
                               
-                              // Leer el archivo como Data URL
-                              const reader = new FileReader();
-                              reader.onload = function(e) {
-                                  // Comprimir la imagen antes de guardarla
-                                  const img = new Image();
-                                  img.onload = function() {
-                                      // Crear un canvas para comprimir la imagen
-                                      const canvas = document.createElement('canvas');
-                                      
-                                      // Calcular el nuevo tamaño manteniendo la proporción
-                                      let width = img.width;
-                                      let height = img.height;
-                                      const maxSize = 800; // Tamaño máximo para cualquier dimensión
-                                      
-                                      if (width > height && width > maxSize) {
-                                          height = Math.round(height * (maxSize / width));
-                                          width = maxSize;
-                                      } else if (height > maxSize) {
-                                          width = Math.round(width * (maxSize / height));
-                                          height = maxSize;
-                                      }
-                                      
-                                      // Establecer el tamaño del canvas
-                                      canvas.width = width;
-                                      canvas.height = height;
-                                      
-                                      // Dibujar la imagen en el canvas con el nuevo tamaño
-                                      const ctx = canvas.getContext('2d');
-                                      ctx.drawImage(img, 0, 0, width, height);
-                                      
-                                      // Obtener la imagen comprimida como Data URL (calidad 0.8)
-                                      const compressedImageData = canvas.toDataURL('image/jpeg', 0.8);
-                                      
-                                      // Guardar los datos de la imagen según el índice
-                                      if (imageIndex === 1) {
-                                          image1Data = compressedImageData;
-                                      } else if (imageIndex === 2) {
-                                          image2Data = compressedImageData;
-                                      } else if (imageIndex === 3) {
-                                          image3Data = compressedImageData;
-                                      }
-                                      
-                                      // Mostrar vista previa
-                                      previewContainer.innerHTML = '';
-                                      const previewImg = document.createElement('img');
-                                      previewImg.className = 'max-h-full max-w-full object-contain';
-                                      previewImg.src = compressedImageData;
-                                      previewContainer.appendChild(previewImg);
-                                  };
-                                  
-                                  // Cargar la imagen original
-                                  img.src = e.target.result;
-                              };
-                              reader.readAsDataURL(file);
-                          }
-                      });
+                              // Establecer el tamaño del canvas
+                              canvas.width = width;
+                              canvas.height = height;
+                              
+                              // Dibujar la imagen en el canvas con el nuevo tamaño
+                              const ctx = canvas.getContext('2d');
+                              ctx.drawImage(img, 0, 0, width, height);
+                              
+                              // Obtener la imagen comprimida como Data URL (calidad 0.8)
+                              const compressedImageData = canvas.toDataURL('image/jpeg', 0.8);
+                              
+                              // Guardar los datos de la imagen según el índice
+                              if (imageIndex === 1) {
+                                  image1Data = compressedImageData;
+                              } else if (imageIndex === 2) {
+                                  image2Data = compressedImageData;
+                              } else if (imageIndex === 3) {
+                                  image3Data = compressedImageData;
+                              }
+                              
+                              // Mostrar vista previa
+                              previewContainer.innerHTML = '';
+                              const previewImg = document.createElement('img');
+                              previewImg.className = 'max-h-full max-w-full object-contain';
+                              previewImg.src = compressedImageData;
+                              previewContainer.appendChild(previewImg);
+                          };
+                          
+                          // Cargar la imagen original
+                          img.src = e.target.result;
+                      };
+                      reader.readAsDataURL(file);
                   }
+              });
+          }
+      };
+      
+      // Configurar los manejadores de eventos para cada imagen
+      setupImageUpload(image1Input, selectImage1Btn, image1Preview, 1);
+      setupImageUpload(image2Input, selectImage2Btn, image2Preview, 2);
+      setupImageUpload(image3Input, selectImage3Btn, image3Preview, 3);
+      
+      // Manejar el botón de aplicar mosaico
+      if (applyMosaicBtn) {
+          applyMosaicBtn.addEventListener('click', function() {
+              // Obtener el color del marco seleccionado
+              let frameColor = 'black'; // Default color
+              for (const radio of frameColorRadios) {
+                  if (radio.checked) {
+                      frameColor = radio.value;
+                      break;
+                  }
+              }
+              
+              // Obtener el tamaño del marco
+              const frameSize = frameSizeSlider.value;
+              
+              // Crear el objeto de parámetros
+              const params = {
+                  frame_color: frameColor,
+                  frame_size: frameSize
               };
               
-              // Configurar los manejadores de eventos para cada imagen
-              setupImageUpload(image1Input, selectImage1Btn, image1Preview, 1);
-              setupImageUpload(image2Input, selectImage2Btn, image2Preview, 2);
-              setupImageUpload(image3Input, selectImage3Btn, image3Preview, 3);
+              // Añadir las imágenes adicionales si están disponibles
+              if (image1Data) {
+                  params.image_data_1 = image1Data;
+              }
+              if (image2Data) {
+                  params.image_data_2 = image2Data;
+              }
+              if (image3Data) {
+                  params.image_data_3 = image3Data;
+              }
               
-              // Manejar el botón de aplicar mosaico
-              if (applyMosaicBtn) {
-                  applyMosaicBtn.addEventListener('click', function() {
-                      // Obtener el color del marco seleccionado
-                      let frameColor = 'red';
-                      for (const radio of frameColorRadios) {
-                          if (radio.checked) {
-                              frameColor = radio.value;
-                              break;
+              // Aplicar el filtro de mosaico
+              applyFilter('4mosaic', params);
+          });
+      }
+  }
+  
+  // Función para inicializar el control de fusión
+  function initializeMergeControl() {
+      console.log("Initializing merge control");
+      
+      const applyMergeBtn = document.getElementById('applyMerge');
+      const secondImageInput = document.getElementById('secondImage');
+      const selectSecondImageBtn = document.getElementById('selectSecondImageBtn');
+      const secondImageName = document.getElementById('secondImageName');
+      const secondImagePreview = document.getElementById('secondImagePreview');
+      const secondImagePreviewImg = document.getElementById('secondImagePreviewImg');
+      const alphaSlider = document.getElementById('alphaSlider');
+      const alphaValue = document.getElementById('alphaValue');
+      const alphaSliderContainer = document.getElementById('alphaSliderContainer');
+      const mergeTypeRadios = document.getElementsByName('mergeType');
+      
+      // Inicializar variables para la segunda imagen
+      let secondImageData = null;
+      
+      // Manejar la selección del tipo de fusión
+      mergeTypeRadios.forEach(radio => {
+          radio.addEventListener('change', function() {
+              if (this.value === 'alpha') {
+                  alphaSliderContainer.classList.remove('hidden');
+              } else {
+                  alphaSliderContainer.classList.add('hidden');
+              }
+          });
+      });
+      
+      // Actualizar el valor del slider de alpha
+      if (alphaSlider && alphaValue) {
+          alphaSlider.addEventListener('input', function() {
+              alphaValue.textContent = this.value;
+          });
+      }
+      
+      // Manejar el botón de selección de imagen
+      if (selectSecondImageBtn && secondImageInput) {
+          selectSecondImageBtn.addEventListener('click', function() {
+              secondImageInput.click();
+          });
+      }
+      
+      // Manejar la selección de archivo
+      if (secondImageInput) {
+          secondImageInput.addEventListener('change', function() {
+              if (this.files && this.files[0]) {
+                  const file = this.files[0];
+                  
+                  // Validar tipo de archivo
+                  if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
+                      alert('Please select a JPEG or PNG image');
+                      return;
+                  }
+                  
+                  // Mostrar nombre del archivo
+                  secondImageName.textContent = file.name;
+                  
+                  // Leer el archivo como Data URL
+                  const reader = new FileReader();
+                  reader.onload = function(e) {
+                      // Comprimir la imagen antes de guardarla
+                      const img = new Image();
+                      img.onload = function() {
+                          // Crear un canvas para comprimir la imagen
+                          const canvas = document.createElement('canvas');
+                          
+                          // Calcular el nuevo tamaño manteniendo la proporción
+                          let width = img.width;
+                          let height = img.height;
+                          const maxSize = 800; // Tamaño máximo para cualquier dimensión
+                          
+                          if (width > height && width > maxSize) {
+                              height = Math.round(height * (maxSize / width));
+                              width = maxSize;
+                          } else if (height > maxSize) {
+                              width = Math.round(width * (maxSize / height));
+                              height = maxSize;
                           }
-                      }
-                      
-                      // Obtener el tamaño del marco
-                      const frameSize = frameSizeSlider.value;
-                      
-                      // Crear el objeto de parámetros
-                      const params = {
-                          frame_color: frameColor,
-                          frame_size: frameSize
+                          
+                          // Establecer el tamaño del canvas
+                          canvas.width = width;
+                          canvas.height = height;
+                          
+                          // Dibujar la imagen en el canvas con el nuevo tamaño
+                          const ctx = canvas.getContext('2d');
+                          ctx.drawImage(img, 0, 0, width, height);
+                          
+                          // Obtener la imagen comprimida como Data URL (calidad 0.8)
+                          secondImageData = canvas.toDataURL('image/jpeg', 0.8);
+                          
+                          // Mostrar vista previa
+                          secondImagePreviewImg.src = secondImageData;
+                          secondImagePreview.classList.remove('hidden');
                       };
                       
-                      // Añadir las imágenes adicionales si están disponibles
-                      if (image1Data) {
-                          params.image_data_1 = image1Data;
-                      }
-                      if (image2Data) {
-                          params.image_data_2 = image2Data;
-                      }
-                      if (image3Data) {
-                          params.image_data_3 = image3Data;
-                      }
-                      
-                      // Aplicar el filtro de mosaico
-                      applyFilter('4mosaic', params);
-                  });
+                      // Cargar la imagen original
+                      img.src = e.target.result;
+                  };
+                  reader.readAsDataURL(file);
               }
-              break;
+          });
+      }
+      
+      // Manejar el botón de aplicar fusión
+      if (applyMergeBtn) {
+          applyMergeBtn.addEventListener('click', function() {
+              if (!secondImageData) {
+                  alert('Please select a second image to merge');
+                  return;
+              }
               
+              // Obtener el tipo de fusión seleccionado
+              let mergeType = 'alpha';
+              for (const radio of mergeTypeRadios) {
+                  if (radio.checked) {
+                      mergeType = radio.value;
+                      break;
+                  }
+              }
+              
+              // Aplicar el filtro de fusión
+              const params = {
+                  second_image_data: secondImageData,
+                  merge_type: mergeType
+              };
+              
+              // Añadir alpha solo si es necesario
+              if (mergeType === 'alpha') {
+                  params.alpha = alphaSlider.value;
+              }
+              
+              applyFilter('merge', params);
+          });
+      }
+  }
+  
+  function addControlEventListeners(filterType) {
+      switch (filterType) {
           case 'brightness':
               const brightnessSlider = document.getElementById('brightnessSlider');
               const brightnessValue = document.getElementById('brightnessValue');
