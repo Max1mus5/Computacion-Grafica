@@ -180,6 +180,15 @@
                         <span>Merge Images</span>
                     </div>
                 </div>
+                
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="4mosaic">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                        </svg>
+                        <span>4 Mosaic</span>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -361,6 +370,87 @@
                 </div>
                 
                 <button id="applyMerge" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply Merge</button>
+            </div>
+            
+            <!-- 4 Mosaic Controls -->
+            <div id="4mosaicControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Create 4-Image Mosaic</h3>
+                <p class="text-sm mb-3">Upload 3 additional images to create a 4-image mosaic.</p>
+                
+                <!-- Image Uploads -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <!-- Current Image Preview -->
+                    <div class="border border-gray-700 rounded p-2">
+                        <div class="text-center text-sm mb-1">Current Image</div>
+                        <div class="h-24 flex items-center justify-center">
+                            <img id="currentImagePreview" class="max-h-full max-w-full object-contain" src="" alt="Current Image">
+                        </div>
+                    </div>
+                    
+                    <!-- Image 1 Upload -->
+                    <div class="border border-gray-700 rounded p-2">
+                        <div class="text-center text-sm mb-1">Image 1</div>
+                        <div id="image1Preview" class="h-24 flex items-center justify-center">
+                            <button id="selectImage1Btn" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs">
+                                Select Image
+                            </button>
+                            <input type="file" id="image1Input" class="hidden" accept="image/jpeg, image/png">
+                        </div>
+                    </div>
+                    
+                    <!-- Image 2 Upload -->
+                    <div class="border border-gray-700 rounded p-2">
+                        <div class="text-center text-sm mb-1">Image 2</div>
+                        <div id="image2Preview" class="h-24 flex items-center justify-center">
+                            <button id="selectImage2Btn" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs">
+                                Select Image
+                            </button>
+                            <input type="file" id="image2Input" class="hidden" accept="image/jpeg, image/png">
+                        </div>
+                    </div>
+                    
+                    <!-- Image 3 Upload -->
+                    <div class="border border-gray-700 rounded p-2">
+                        <div class="text-center text-sm mb-1">Image 3</div>
+                        <div id="image3Preview" class="h-24 flex items-center justify-center">
+                            <button id="selectImage3Btn" class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs">
+                                Select Image
+                            </button>
+                            <input type="file" id="image3Input" class="hidden" accept="image/jpeg, image/png">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Frame Color Selection -->
+                <div class="mb-3">
+                    <label class="block text-sm mb-1">Frame Color:</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <label class="flex items-center p-2 border border-gray-700 rounded cursor-pointer hover:bg-gray-800">
+                            <input type="radio" name="frameColor" value="red" class="mr-2" checked>
+                            <span class="w-4 h-4 rounded-full bg-red-500"></span>
+                        </label>
+                        <label class="flex items-center p-2 border border-gray-700 rounded cursor-pointer hover:bg-gray-800">
+                            <input type="radio" name="frameColor" value="blue" class="mr-2">
+                            <span class="w-4 h-4 rounded-full bg-blue-500"></span>
+                        </label>
+                        <label class="flex items-center p-2 border border-gray-700 rounded cursor-pointer hover:bg-gray-800">
+                            <input type="radio" name="frameColor" value="green" class="mr-2">
+                            <span class="w-4 h-4 rounded-full bg-green-500"></span>
+                        </label>
+                        <label class="flex items-center p-2 border border-gray-700 rounded cursor-pointer hover:bg-gray-800">
+                            <input type="radio" name="frameColor" value="black" class="mr-2">
+                            <span class="w-4 h-4 rounded-full bg-black"></span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Frame Size Slider -->
+                <div class="slider-container mb-3">
+                    <label class="block text-sm mb-1">Frame Size: <span id="frameSizeValue">9</span>px</label>
+                    <input type="range" id="frameSizeSlider" min="5" max="20" step="1" value="9" class="w-full">
+                </div>
+                
+                <button id="applyMosaic" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Create Mosaic</button>
             </div>
         </div>
         

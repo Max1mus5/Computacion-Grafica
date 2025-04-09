@@ -93,6 +93,36 @@ def process_image(request):
                         result = ImageFilters.merge_images(img_array, img_array2, alpha)
                 else:
                     result = img_array
+            elif filter_type == '4mosaic':
+                # Crear un mosaico con 4 imágenes
+                images = [img_array]  # La imagen actual es la primera
+                
+                # Obtener las otras 3 imágenes
+                for i in range(1, 4):
+                    image_data_key = f'image_data_{i}'
+                    image_data = request.POST.get(image_data_key)
+                    
+                    if image_data:
+                        try:
+                            _, imgstr = image_data.split(';base64,')
+                            img_data = base64.b64decode(imgstr)
+                            img = Image.open(BytesIO(img_data))
+                            img_array_i = np.array(img)
+                            images.append(img_array_i)
+                        except Exception as e:
+                            print(f"Error al procesar imagen {i}: {e}")
+                            # Si hay un error, usar la imagen actual como reemplazo
+                            images.append(img_array)
+                    else:
+                        # Si no se proporciona una imagen, usar la imagen actual
+                        images.append(img_array)
+                
+                # Obtener el color del marco y el tamaño
+                frame_color = request.POST.get('frame_color', 'red')
+                frame_size = int(request.POST.get('frame_size', 9))
+                
+                # Crear el mosaico
+                result = ImageFilters.create_mosaic(images, frame_color, frame_size)
             else:
                 # Si no se especifica filtro, devolver la imagen original
                 result = img_array

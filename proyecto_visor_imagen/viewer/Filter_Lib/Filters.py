@@ -337,6 +337,82 @@ class ImageFilters:
             return image1
     
     @staticmethod
+    def create_mosaic(images, color_frame='red', frame_size=9):
+        """
+        Crea un mosaico de 4 imágenes con un marco de color.
+        :param images: Lista de 4 imágenes en formato numpy array (H, W, C)
+        :param color_frame: Color del marco ('red', 'black', etc.)
+        :param frame_size: Tamaño del marco en píxeles
+        :return: Imagen del mosaico en formato numpy array
+        """
+        # Validar número de imágenes
+        if len(images) != 4:
+            raise ValueError("Se requieren exactamente 4 imágenes")
+        
+        # Redimensionar las imágenes
+        resized_images = []
+        for img in images:
+            # Redimensionar imagen una por una
+            if img.ndim == 3:  # Imagen a color
+                img_resized = np.zeros((300, 300, img.shape[2]))
+            else:  # Imagen en escala de grises
+                img_resized = np.zeros((300, 300))
+            
+            # Aplicación de interpolación simple
+            x_ratio = img.shape[1] / 300
+            y_ratio = img.shape[0] / 300
+            
+            for y in range(300):
+                for x in range(300):
+                    px = int(x * x_ratio)
+                    py = int(y * y_ratio)
+                    px = min(px, img.shape[1] - 1)
+                    py = min(py, img.shape[0] - 1)
+                    img_resized[y, x] = img[py, px]
+            
+            resized_images.append(img_resized)
+        
+        # Cálculo del tamaño total del mosaico
+        total_size = 300 * 2 + frame_size * 3  # 3 marcos en total (bordes y centro)
+        
+        # Crear el lienzo con el color del marco
+        mosaic = np.zeros((total_size, total_size, 3))
+        
+        # Convertir nombre de color a RGB usando matplotlib
+        import matplotlib.pyplot as plt
+        rgb_color = plt.cm.colors.to_rgb(color_frame)
+        
+        # Rellenar todo el lienzo con el color del marco
+        mosaic[:, :, 0] = rgb_color[0]
+        mosaic[:, :, 1] = rgb_color[1]
+        mosaic[:, :, 2] = rgb_color[2]
+        
+        # Insertar imágenes en la matriz
+        for i in range(4):
+            row = i // 2
+            col = i % 2
+            pos_x = col * (300 + frame_size) + frame_size
+            pos_y = row * (300 + frame_size) + frame_size
+            
+            img = resized_images[i]
+            
+            # Asegurar que la imagen tenga 3 canales
+            if img.ndim == 2:  # Si es escala de grises
+                img_rgb = np.stack([img, img, img], axis=2)
+            else:
+                img_rgb = img
+                
+            # Normalizar valores si es necesario
+            if img_rgb.max() > 1.0:
+                img_rgb = img_rgb / 255.0
+                
+            # Posicionar la imagen en el mosaico
+            mosaic[pos_y:pos_y+300, pos_x:pos_x+300] = img_rgb
+        
+        # Convertir a formato uint8 para devolverlo como imagen
+        return (mosaic * 255).astype(np.uint8)
+    
+    @staticmethod
     def generate_histogram(image):
         """
         Genera el histograma de la imagen para cada canal de color.
