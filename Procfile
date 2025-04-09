@@ -1,0 +1,1 @@
+web: cd proyecto_visor_imagen && gunicorn proyecto_visor_imagen.wsgi:application --log-file -

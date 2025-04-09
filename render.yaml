@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: visor-imagen
+    env: python
+    buildCommand: |
+      pip install -r proyecto_visor_imagen/requirements.txt
+      cd proyecto_visor_imagen && python manage.py collectstatic --noinput
+    startCommand: cd proyecto_visor_imagen && gunicorn proyecto_visor_imagen.wsgi:application --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: DEBUG
+        value: "False"
+      - key: DJANGO_SETTINGS_MODULE
+        value: proyecto_visor_imagen.settings
