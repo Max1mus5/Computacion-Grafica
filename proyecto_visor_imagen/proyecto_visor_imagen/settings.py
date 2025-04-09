@@ -42,9 +42,10 @@ INSTALLED_APPS = [
     'docspage',
 ]
 
+# Middleware base
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Añadido para servir archivos estáticos
+    # WhiteNoise se añadirá condicionalmente
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -52,6 +53,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Intentar importar WhiteNoise y añadirlo al middleware si está disponible
+try:
+    import whitenoise
+    # Insertar WhiteNoise después del middleware de seguridad
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
+    print("WhiteNoise middleware añadido correctamente.")
+except ImportError:
+    print("WhiteNoise no está instalado. Los archivos estáticos se servirán con el método estándar de Django.")
 
 ROOT_URLCONF = 'proyecto_visor_imagen.urls'
 
@@ -130,13 +140,22 @@ STATICFILES_DIRS = []
 if os.path.exists(static_dir):
     STATICFILES_DIRS.append(static_dir)
 
-# Configuración para servir archivos estáticos en producción con WhiteNoise
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Configuración para servir archivos estáticos
+# Por defecto, usar el almacenamiento estándar de Django
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
-# Configuración adicional para WhiteNoise
-WHITENOISE_USE_FINDERS = True
-WHITENOISE_AUTOREFRESH = True
-WHITENOISE_ROOT = STATIC_ROOT
+# Si WhiteNoise está disponible, usar su almacenamiento
+try:
+    import whitenoise
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    
+    # Configuración adicional para WhiteNoise
+    WHITENOISE_USE_FINDERS = True
+    WHITENOISE_AUTOREFRESH = True
+    WHITENOISE_ROOT = STATIC_ROOT
+    print("Configuración de WhiteNoise para archivos estáticos aplicada.")
+except ImportError:
+    print("Usando almacenamiento estándar de Django para archivos estáticos.")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
