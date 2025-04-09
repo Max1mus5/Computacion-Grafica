@@ -39,35 +39,21 @@ class ImageFilters:
         :param angle: Ángulo de rotación en grados (0-360)
         :return: Imagen rotada
         """
-        from matplotlib import transforms
+        # Usamos scikit-image para rotar la imagen en lugar de matplotlib
+        # Esto evita problemas con el hilo principal y tkinter
+        from skimage.transform import rotate
         
-        # Creamos una figura y un eje con el tamaño adecuado
-        height, width = image.shape[:2]
-        fig = plt.figure(figsize=(width/100, height/100), dpi=100)
-        ax = fig.add_subplot(111)
+        # Aseguramos que la imagen esté en formato float para evitar pérdida de datos
+        img_float = image.astype(np.float32) / 255.0
         
-        # Desactivamos los ejes y establecemos los límites
-        ax.set_axis_off()
-        ax.set_xlim([0, width])
-        ax.set_ylim([height, 0])
+        # Rotamos la imagen
+        # preserve_range=True mantiene los valores en el rango original
+        # resize=True ajusta el tamaño del lienzo para que no se recorte la imagen
+        rotated = rotate(img_float, angle, resize=True, mode='constant', 
+                         cval=0, clip=False, preserve_range=False)
         
-        # Calculamos el centro de la imagen
-        center = (width/2, height/2)
-        
-        # Aplicamos la transformación de rotación
-        tr = transforms.Affine2D().rotate_deg_around(center[0], center[1], angle) + ax.transData
-        
-        # Mostramos la imagen con la transformación aplicada
-        ax.imshow(image, transform=tr)
-        
-        # Renderizamos la figura
-        fig.canvas.draw()
-        
-        # Obtenemos la imagen del canvas como un array
-        rotated_image = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        rotated_image = rotated_image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-        
-        plt.close(fig)
+        # Convertimos de vuelta a uint8
+        rotated_image = (rotated * 255).astype(np.uint8)
         
         return rotated_image
     
@@ -104,13 +90,32 @@ class ImageFilters:
         :param blue: Booleano que indica si el canal azul está activado
         :return: Imagen con filtro RGB aplicado
         """
+        # Verificar que la imagen tenga 3 canales
+        if len(image.shape) != 3 or image.shape[2] < 3:
+            # Si no es una imagen RGB, devolver la imagen original
+            return image
+            
+        # Crear una copia para no modificar la original
         result = image.copy()
-        if not red:
-            result[:, :, 0] = 0
-        if not green:
-            result[:, :, 1] = 0
-        if not blue:
-            result[:, :, 2] = 0
+        
+        # Convertir los parámetros a booleanos explícitos
+        red_active = bool(red)
+        green_active = bool(green)
+        blue_active = bool(blue)
+        
+        # Aplicar filtros de canal
+        try:
+            if not red_active:
+                result[:, :, 0] = 0
+            if not green_active:
+                result[:, :, 1] = 0
+            if not blue_active:
+                result[:, :, 2] = 0
+        except Exception as e:
+            # En caso de error, registrar y devolver la imagen original
+            print(f"Error al aplicar filtro RGB: {e}")
+            return image
+            
         return result
     
     @staticmethod
@@ -123,16 +128,34 @@ class ImageFilters:
         :param yellow: Booleano que indica si el canal amarillo está activado
         :return: Imagen con filtro CMY aplicado
         """
+        # Verificar que la imagen tenga 3 canales
+        if len(image.shape) != 3 or image.shape[2] < 3:
+            # Si no es una imagen RGB, devolver la imagen original
+            return image
+            
+        # Crear una copia para no modificar la original
         result = image.copy()
-        # Cian es la ausencia de rojo
-        if not cyan:
-            result[:, :, 0] = 255
-        # Magenta es la ausencia de verde
-        if not magenta:
-            result[:, :, 1] = 255
-        # Amarillo es la ausencia de azul
-        if not yellow:
-            result[:, :, 2] = 255
+        
+        # Convertir los parámetros a booleanos explícitos
+        cyan_active = bool(cyan)
+        magenta_active = bool(magenta)
+        yellow_active = bool(yellow)
+        
+        try:
+            # Cian es la ausencia de rojo
+            if not cyan_active:
+                result[:, :, 0] = 255
+            # Magenta es la ausencia de verde
+            if not magenta_active:
+                result[:, :, 1] = 255
+            # Amarillo es la ausencia de azul
+            if not yellow_active:
+                result[:, :, 2] = 255
+        except Exception as e:
+            # En caso de error, registrar y devolver la imagen original
+            print(f"Error al aplicar filtro CMY: {e}")
+            return image
+            
         return result
     
     @staticmethod
@@ -154,36 +177,61 @@ class ImageFilters:
         :param scale: Factor de escala del zoom (>1 para acercar, <1 para alejar)
         :return: Imagen con zoom aplicado
         """
-        height, width = image.shape[:2]
-        
-        # Calculamos el tamaño de la región para el zoom
-        zoom_width = int(width / scale)
-        zoom_height = int(height / scale)
-        
-        # Calculamos las coordenadas de la región
-        half_w = zoom_width // 2
-        half_h = zoom_height // 2
-        
-        # Aseguramos que las coordenadas estén dentro de los límites
-        x = max(half_w, min(x, width - half_w))
-        y = max(half_h, min(y, height - half_h))
-        
-        # Recortamos la región
-        x1, y1 = x - half_w, y - half_h
-        x2, y2 = x + half_w, y + half_h
-        
-        # Aseguramos que no nos salgamos de los límites
-        x1 = max(0, x1)
-        y1 = max(0, y1)
-        x2 = min(width, x2)
-        y2 = min(height, y2)
-        
-        # Extraemos la región y la redimensionamos
-        region = image[y1:y2, x1:x2]
-        from skimage.transform import resize
-        zoomed = resize(region, (height, width), mode='reflect', preserve_range=True)
-        
-        return zoomed.astype(np.uint8)
+        try:
+            # Verificar que la imagen sea válida
+            if image is None or len(image.shape) < 2:
+                print("Imagen inválida para aplicar zoom")
+                return image
+                
+            # Obtener dimensiones
+            height, width = image.shape[:2]
+            
+            # Convertir coordenadas a enteros
+            x = int(x)
+            y = int(y)
+            
+            # Asegurar que scale sea positivo
+            scale = max(0.1, float(scale))
+            
+            # Calculamos el tamaño de la región para el zoom
+            zoom_width = max(1, int(width / scale))
+            zoom_height = max(1, int(height / scale))
+            
+            # Calculamos las coordenadas de la región
+            half_w = zoom_width // 2
+            half_h = zoom_height // 2
+            
+            # Aseguramos que las coordenadas estén dentro de los límites
+            x = max(half_w, min(x, width - half_w))
+            y = max(half_h, min(y, height - half_h))
+            
+            # Recortamos la región
+            x1, y1 = max(0, x - half_w), max(0, y - half_h)
+            x2, y2 = min(width, x + half_w), min(height, y + half_h)
+            
+            # Verificar que la región sea válida
+            if x2 <= x1 or y2 <= y1:
+                print("Región de zoom inválida")
+                return image
+                
+            # Extraemos la región
+            region = image[y1:y2, x1:x2]
+            
+            # Redimensionamos usando scikit-image
+            from skimage.transform import resize
+            zoomed = resize(
+                region, 
+                (height, width), 
+                mode='edge',  # Usar 'edge' en lugar de 'reflect' para evitar artefactos
+                anti_aliasing=True,  # Aplicar anti-aliasing para mejor calidad
+                preserve_range=True  # Mantener el rango de valores
+            )
+            
+            return zoomed.astype(np.uint8)
+            
+        except Exception as e:
+            print(f"Error al aplicar zoom: {e}")
+            return image
     
     @staticmethod
     def binarize_image(image, threshold=128):
@@ -235,35 +283,62 @@ class ImageFilters:
         :param image: Imagen en formato numpy array (H, W, C)
         :return: Figura de matplotlib con el histograma
         """
+        # Configurar matplotlib para no usar GUI
+        import matplotlib
+        matplotlib.use('Agg')  # Use non-interactive backend
+        
+        # Crear figura sin usar tkinter
         if len(image.shape) == 3 and image.shape[2] == 3:
-            fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+            # Crear figura
+            fig = plt.figure(figsize=(12, 10))
+            
+            # Crear subplots manualmente
+            ax1 = fig.add_subplot(2, 2, 1)
+            ax2 = fig.add_subplot(2, 2, 2)
+            ax3 = fig.add_subplot(2, 2, 3)
+            ax4 = fig.add_subplot(2, 2, 4)
             
             # Histograma de intensidad
             gray = np.dot(image[..., :3], [0.2989, 0.5870, 0.1140])
-            axes[0, 0].hist(gray.ravel(), bins=256, color='gray', alpha=0.7)
-            axes[0, 0].set_title('Intensidad')
-            axes[0, 0].set_xlim([0, 256])
+            ax1.hist(gray.ravel(), bins=256, color='gray', alpha=0.7)
+            ax1.set_title('Intensidad')
+            ax1.set_xlim([0, 256])
             
             # Histograma de canal rojo
-            axes[0, 1].hist(image[..., 0].ravel(), bins=256, color='red', alpha=0.7)
-            axes[0, 1].set_title('Canal Rojo')
-            axes[0, 1].set_xlim([0, 256])
+            ax2.hist(image[..., 0].ravel(), bins=256, color='red', alpha=0.7)
+            ax2.set_title('Canal Rojo')
+            ax2.set_xlim([0, 256])
             
             # Histograma de canal verde
-            axes[1, 0].hist(image[..., 1].ravel(), bins=256, color='green', alpha=0.7)
-            axes[1, 0].set_title('Canal Verde')
-            axes[1, 0].set_xlim([0, 256])
+            ax3.hist(image[..., 1].ravel(), bins=256, color='green', alpha=0.7)
+            ax3.set_title('Canal Verde')
+            ax3.set_xlim([0, 256])
             
             # Histograma de canal azul
-            axes[1, 1].hist(image[..., 2].ravel(), bins=256, color='blue', alpha=0.7)
-            axes[1, 1].set_title('Canal Azul')
-            axes[1, 1].set_xlim([0, 256])
+            ax4.hist(image[..., 2].ravel(), bins=256, color='blue', alpha=0.7)
+            ax4.set_title('Canal Azul')
+            ax4.set_xlim([0, 256])
             
             plt.tight_layout()
-            return fig
         else:
-            fig, ax = plt.subplots(figsize=(10, 6))
+            fig = plt.figure(figsize=(10, 6))
+            ax = fig.add_subplot(1, 1, 1)
             ax.hist(image.ravel(), bins=256, color='gray', alpha=0.7)
             ax.set_title('Histograma de Intensidad')
             ax.set_xlim([0, 256])
-            return fig
+        
+        # Guardar la figura en un buffer de memoria
+        from io import BytesIO
+        buf = BytesIO()
+        fig.savefig(buf, format='png', bbox_inches='tight')
+        plt.close(fig)  # Cerrar la figura para liberar memoria
+        
+        # Crear una nueva figura con la imagen guardada
+        buf.seek(0)
+        img = plt.imread(buf)
+        new_fig = plt.figure(figsize=(12, 10))
+        ax = new_fig.add_subplot(1, 1, 1)
+        ax.imshow(img)
+        ax.axis('off')
+        
+        return new_fig
