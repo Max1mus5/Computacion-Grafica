@@ -337,6 +337,51 @@ document.addEventListener('DOMContentLoaded', function() {
               `;
               break;
               
+          case 'merge':
+              controlsContainer.innerHTML = `
+                  <h3 class="text-md font-semibold mb-3">Merge Images</h3>
+                  <p class="text-sm mb-3">Upload a second image to merge with the current one.</p>
+                  
+                  <!-- Second Image Upload -->
+                  <div class="mb-3">
+                      <label class="block text-sm mb-1">Second Image:</label>
+                      <div class="flex items-center">
+                          <input type="file" id="secondImage" class="hidden" accept="image/jpeg, image/png">
+                          <button id="selectSecondImageBtn" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm mr-2">
+                              Select Image
+                          </button>
+                          <span id="secondImageName" class="text-sm text-gray-400">No image selected</span>
+                      </div>
+                      <div id="secondImagePreview" class="mt-2 hidden">
+                          <img id="secondImagePreviewImg" class="max-h-32 max-w-full object-contain border border-gray-700 rounded" alt="Second Image Preview">
+                      </div>
+                  </div>
+                  
+                  <!-- Merge Type Selection -->
+                  <div class="mb-3">
+                      <label class="block text-sm mb-1">Merge Type:</label>
+                      <div class="grid grid-cols-2 gap-2">
+                          <label class="flex items-center p-2 border border-gray-700 rounded cursor-pointer hover:bg-gray-800">
+                              <input type="radio" name="mergeType" value="alpha" class="mr-2" checked>
+                              <span>Alpha Blend</span>
+                          </label>
+                          <label class="flex items-center p-2 border border-gray-700 rounded cursor-pointer hover:bg-gray-800">
+                              <input type="radio" name="mergeType" value="watermark" class="mr-2">
+                              <span>Watermark</span>
+                          </label>
+                      </div>
+                  </div>
+                  
+                  <!-- Alpha Slider (only for alpha blend) -->
+                  <div id="alphaSliderContainer" class="slider-container mb-2">
+                      <label class="block text-sm mb-1">Blend Ratio: <span id="alphaValue">0.5</span></label>
+                      <input type="range" id="alphaSlider" min="0" max="1" step="0.1" value="0.5" class="w-full">
+                  </div>
+                  
+                  <button id="applyMergeBtn" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply Merge</button>
+              `;
+              break;
+              
           default:
               controlsContainer.innerHTML = `
                   <p class="text-gray-400">Select a filter option to continue</p>
@@ -479,6 +524,109 @@ document.addEventListener('DOMContentLoaded', function() {
               applyBinaryBtn.addEventListener('click', function() {
                   applyFilter('binary', { threshold: thresholdSlider.value });
               });
+              break;
+              
+          case 'merge':
+              const applyMergeBtn = document.getElementById('applyMergeBtn');
+              const secondImageInput = document.getElementById('secondImage');
+              const selectSecondImageBtn = document.getElementById('selectSecondImageBtn');
+              const secondImageName = document.getElementById('secondImageName');
+              const secondImagePreview = document.getElementById('secondImagePreview');
+              const secondImagePreviewImg = document.getElementById('secondImagePreviewImg');
+              const alphaSlider = document.getElementById('alphaSlider');
+              const alphaValue = document.getElementById('alphaValue');
+              const alphaSliderContainer = document.getElementById('alphaSliderContainer');
+              const mergeTypeRadios = document.getElementsByName('mergeType');
+              
+              // Inicializar variables para la segunda imagen
+              let secondImageData = null;
+              
+              // Manejar la selección del tipo de fusión
+              mergeTypeRadios.forEach(radio => {
+                  radio.addEventListener('change', function() {
+                      if (this.value === 'alpha') {
+                          alphaSliderContainer.classList.remove('hidden');
+                      } else {
+                          alphaSliderContainer.classList.add('hidden');
+                      }
+                  });
+              });
+              
+              // Actualizar el valor del slider de alpha
+              if (alphaSlider && alphaValue) {
+                  alphaSlider.addEventListener('input', function() {
+                      alphaValue.textContent = this.value;
+                  });
+              }
+              
+              // Manejar el botón de selección de imagen
+              if (selectSecondImageBtn && secondImageInput) {
+                  selectSecondImageBtn.addEventListener('click', function() {
+                      secondImageInput.click();
+                  });
+              }
+              
+              // Manejar la selección de archivo
+              if (secondImageInput) {
+                  secondImageInput.addEventListener('change', function() {
+                      if (this.files && this.files[0]) {
+                          const file = this.files[0];
+                          
+                          // Validar tipo de archivo
+                          if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
+                              alert('Please select a JPEG or PNG image');
+                              return;
+                          }
+                          
+                          // Mostrar nombre del archivo
+                          secondImageName.textContent = file.name;
+                          
+                          // Leer el archivo como Data URL
+                          const reader = new FileReader();
+                          reader.onload = function(e) {
+                              // Guardar los datos de la imagen
+                              secondImageData = e.target.result;
+                              
+                              // Mostrar vista previa
+                              secondImagePreviewImg.src = secondImageData;
+                              secondImagePreview.classList.remove('hidden');
+                          };
+                          reader.readAsDataURL(file);
+                      }
+                  });
+              }
+              
+              // Manejar el botón de aplicar fusión
+              if (applyMergeBtn) {
+                  applyMergeBtn.addEventListener('click', function() {
+                      if (!secondImageData) {
+                          alert('Please select a second image to merge');
+                          return;
+                      }
+                      
+                      // Obtener el tipo de fusión seleccionado
+                      let mergeType = 'alpha';
+                      for (const radio of mergeTypeRadios) {
+                          if (radio.checked) {
+                              mergeType = radio.value;
+                              break;
+                          }
+                      }
+                      
+                      // Aplicar el filtro de fusión
+                      const params = {
+                          second_image_data: secondImageData,
+                          merge_type: mergeType
+                      };
+                      
+                      // Añadir alpha solo si es necesario
+                      if (mergeType === 'alpha') {
+                          params.alpha = alphaSlider.value;
+                      }
+                      
+                      applyFilter('merge', params);
+                  });
+              }
               break;
       }
   }

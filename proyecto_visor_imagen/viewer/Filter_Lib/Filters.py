@@ -277,6 +277,66 @@ class ImageFilters:
         return np.clip(merged, 0, 255).astype(np.uint8)
     
     @staticmethod
+    def watermark_merge_images(image1, image2):
+        """
+        Fusiona dos imágenes de diferentes tamaños usando el método de marca de agua.
+        :param image1: Primera imagen en formato numpy array (H, W, C)
+        :param image2: Segunda imagen en formato numpy array (H, W, C)
+        :return: Imagen fusionada
+        """
+        try:
+            # Normalizar valores a rango [0, 1]
+            img1 = image1.astype(np.float32) / 255
+            img2 = image2.astype(np.float32) / 255
+            
+            # Determinar cuál imagen es más grande
+            tamano1 = img1.shape[0] * img1.shape[1]
+            tamano2 = img2.shape[0] * img2.shape[1]
+            
+            # Identificar la imagen más grande y la más pequeña
+            if tamano1 >= tamano2:
+                img_grande = img1.copy()
+                img_pequena = img2.copy()
+            else:
+                img_grande = img2.copy()
+                img_pequena = img1.copy()
+            
+            # Cálculo de alto y ancho de dimensiones finales
+            altura_final = max(img_grande.shape[0], img_pequena.shape[0])
+            anchura_final = max(img_grande.shape[1], img_pequena.shape[1])
+            
+            # Matriz nueva para añadir imágenes
+            resultado = np.zeros((altura_final, anchura_final, 3))
+            
+            # Posición central para la imagen más pequeña
+            centro_altura = altura_final // 2
+            centro_anchura = anchura_final // 2
+            
+            # Insertar imagen más pequeña en el centro
+            inicio_altura = centro_altura - img_pequena.shape[0] // 2
+            inicio_anchura = centro_anchura - img_pequena.shape[1] // 2
+            
+            resultado[inicio_altura:inicio_altura + img_pequena.shape[0],
+                     inicio_anchura:inicio_anchura + img_pequena.shape[1]] += img_pequena
+            
+            # Aplicar efecto de marca de agua
+            img_marca_agua = img_grande * 1
+            
+            # Insertar la imagen con marca de agua
+            resultado[:img_marca_agua.shape[0], :img_marca_agua.shape[1]] += img_marca_agua
+            
+            # Normalizar valores
+            resultado = np.clip(resultado, 0, 1)
+            
+            # Convertir de vuelta a rango [0, 255]
+            return (resultado * 255).astype(np.uint8)
+            
+        except Exception as e:
+            print(f"Error en watermark_merge_images: {e}")
+            # En caso de error, devolver la primera imagen
+            return image1
+    
+    @staticmethod
     def generate_histogram(image):
         """
         Genera el histograma de la imagen para cada canal de color.

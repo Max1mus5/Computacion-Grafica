@@ -80,8 +80,17 @@ def process_image(request):
                     img_data2 = base64.b64decode(imgstr2)
                     img2 = Image.open(BytesIO(img_data2))
                     img_array2 = np.array(img2)
-                    alpha = float(request.POST.get('alpha', 0.5))
-                    result = ImageFilters.merge_images(img_array, img_array2, alpha)
+                    
+                    # Determinar el tipo de fusión
+                    merge_type = request.POST.get('merge_type', 'alpha')
+                    
+                    if merge_type == 'watermark':
+                        # Usar el método de marca de agua
+                        result = ImageFilters.watermark_merge_images(img_array, img_array2)
+                    else:
+                        # Usar el método de fusión con transparencia
+                        alpha = float(request.POST.get('alpha', 0.5))
+                        result = ImageFilters.merge_images(img_array, img_array2, alpha)
                 else:
                     result = img_array
             else:
