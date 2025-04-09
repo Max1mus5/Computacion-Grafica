@@ -1,0 +1,346 @@
+<!-- viewer/templates/viewer/editor.html -->
+{% extends 'viewer/base.html' %}
+
+{% block extra_head %}
+<style>
+    .filter-option {
+        transition: all 0.2s ease-in-out;
+    }
+    .filter-option:hover {
+        background-color: rgba(14, 165, 233, 0.1);
+        border-color: rgba(14, 165, 233, 0.5);
+    }
+    .filter-option.active {
+        background-color: rgba(14, 165, 233, 0.2);
+        border-color: rgb(14, 165, 233);
+    }
+    .slider-container input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 6px;
+        background: #333;
+        border-radius: 5px;
+        outline: none;
+    }
+    .slider-container input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 18px;
+        height: 18px;
+        background: rgb(14, 165, 233);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Image Preview Panel -->
+    <div class="md:col-span-2 bg-gray-900 rounded-lg p-4 overflow-hidden">
+        <div class="flex items-center justify-between mb-2">
+            <h2 class="text-lg font-semibold">Preview</h2>
+            <button id="resetBtn" class="px-3 py-1 bg-gray-800 text-sm rounded hover:bg-gray-700">
+                Reset
+            </button>
+        </div>
+        <div class="relative h-96 bg-black flex items-center justify-center overflow-hidden">
+            <img id="previewImage" class="max-h-full max-w-full object-contain" alt="Preview">
+        </div>
+        <div class="mt-4">
+            <h3 class="text-md font-semibold mb-2">Histogram</h3>
+            <div id="histogramContainer" class="w-full h-48 bg-gray-800 rounded">
+                <canvas id="histogramCanvas" class="w-full h-full"></canvas>
+            </div>
+            <div class="flex items-center justify-between text-sm mt-2">
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 bg-white mr-1"></span>
+                    <span>Luminance</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 bg-red-500 mr-1"></span>
+                    <span>Red</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 bg-green-500 mr-1"></span>
+                    <span>Green</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="inline-block w-3 h-3 bg-blue-500 mr-1"></span>
+                    <span>Blue</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="bg-gray-900 rounded-lg p-4">
+        <h2 class="text-lg font-semibold mb-4">Image Adjustments</h2>
+        
+        <!-- Filter Categories -->
+        <div class="mb-4">
+            <h3 class="text-md font-semibold mb-2">Basic Adjustments</h3>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="brightness">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span>Brightness</span>
+                    </div>
+                </div>
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="contrast">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18M3 12h18" />
+                        </svg>
+                        <span>Contrast</span>
+                    </div>
+                </div>
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="rotate">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span>Rotate</span>
+                    </div>
+                </div>
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="zoom">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                        <span>Zoom</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <h3 class="text-md font-semibold mb-2">Color Filters</h3>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="rgb">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                        </svg>
+                        <span>RGB Channels</span>
+                    </div>
+                </div>
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="cmy">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                        </svg>
+                        <span>CMY Channels</span>
+                    </div>
+                </div>
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="highlight">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span>Highlight Zones</span>
+                    </div>
+                </div>
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="negative">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        <span>Negative</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <h3 class="text-md font-semibold mb-2">Advanced Options</h3>
+            <div class="grid grid-cols-2 gap-2">
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="binary">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                        </svg>
+                        <span>Binary</span>
+                    </div>
+                </div>
+                <div class="filter-option p-3 border border-gray-700 rounded-md cursor-pointer" data-filter="merge">
+                    <div class="text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                        </svg>
+                        <span>Merge Images</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Filter Controls (These will be shown/hidden based on selected filter) -->
+        <div id="filterControls" class="mt-6 border-t border-gray-700 pt-4 hidden">
+            <!-- Brightness Controls -->
+            <div id="brightnessControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Brightness Adjustment</h3>
+                <div class="slider-container mb-2">
+                    <label class="block text-sm mb-1">Brightness Factor: <span id="brightnessValue">1.0</span></label>
+                    <input type="range" id="brightnessSlider" min="0.1" max="3" step="0.1" value="1.0" class="w-full">
+                </div>
+                <button id="applyBrightness" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- Contrast Controls -->
+            <div id="contrastControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Contrast Adjustment</h3>
+                <div class="slider-container mb-2">
+                    <label class="block text-sm mb-1">Contrast Factor: <span id="contrastValue">1.0</span></label>
+                    <input type="range" id="contrastSlider" min="0.1" max="3" step="0.1" value="1.0" class="w-full">
+                </div>
+                <button id="applyContrast" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- Rotate Controls -->
+            <div id="rotateControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Rotate Image</h3>
+                <div class="slider-container mb-2">
+                    <label class="block text-sm mb-1">Angle (degrees): <span id="rotateValue">0</span></label>
+                    <input type="range" id="rotateSlider" min="0" max="360" step="5" value="0" class="w-full">
+                </div>
+                <div class="grid grid-cols-4 gap-2 mt-2">
+                    <button data-angle="90" class="rotate-preset py-1 bg-gray-800 hover:bg-gray-700 rounded">90°</button>
+                    <button data-angle="180" class="rotate-preset py-1 bg-gray-800 hover:bg-gray-700 rounded">180°</button>
+                    <button data-angle="270" class="rotate-preset py-1 bg-gray-800 hover:bg-gray-700 rounded">270°</button>
+                    <button data-angle="0" class="rotate-preset py-1 bg-gray-800 hover:bg-gray-700 rounded">Reset</button>
+                </div>
+                <button id="applyRotate" class="w-full mt-3 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- RGB Controls -->
+            <div id="rgbControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">RGB Channel Control</h3>
+                <div class="mb-2">
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="redChannel" class="mr-2" checked>
+                        <label for="redChannel" class="text-red-500">Red Channel</label>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="greenChannel" class="mr-2" checked>
+                        <label for="greenChannel" class="text-green-500">Green Channel</label>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="blueChannel" class="mr-2" checked>
+                        <label for="blueChannel" class="text-blue-500">Blue Channel</label>
+                    </div>
+                </div>
+                <button id="applyRGB" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- CMY Controls -->
+            <div id="cmyControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">CMY Channel Control</h3>
+                <div class="mb-2">
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="cyanChannel" class="mr-2" checked>
+                        <label for="cyanChannel" class="text-cyan-500">Cyan Channel</label>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="magentaChannel" class="mr-2" checked>
+                        <label for="magentaChannel" class="text-pink-500">Magenta Channel</label>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="yellowChannel" class="mr-2" checked>
+                        <label for="yellowChannel" class="text-yellow-500">Yellow Channel</label>
+                    </div>
+                </div>
+                <button id="applyCMY" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- Highlight Controls -->
+            <div id="highlightControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Highlight Zones</h3>
+                <div class="mb-2">
+                    <div class="flex items-center mb-2">
+                        <input type="radio" name="highlight" id="highlightLight" class="mr-2" value="light" checked>
+                        <label for="highlightLight">Light Areas</label>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <input type="radio" name="highlight" id="highlightDark" class="mr-2" value="dark">
+                        <label for="highlightDark">Dark Areas</label>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <input type="radio" name="highlight" id="highlightMid" class="mr-2" value="mid">
+                        <label for="highlightMid">Mid-tones</label>
+                    </div>
+                </div>
+                <button id="applyHighlight" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- Binary Controls -->
+            <div id="binaryControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Binary Threshold</h3>
+                <div class="slider-container mb-2">
+                    <label class="block text-sm mb-1">Threshold Value: <span id="thresholdValue">128</span></label>
+                    <input type="range" id="thresholdSlider" min="0" max="255" step="1" value="128" class="w-full">
+                </div>
+                <button id="applyBinary" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- Zoom Controls -->
+            <div id="zoomControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Zoom Image</h3>
+                <div class="text-sm mb-3">Click on the image to set zoom point, or enter coordinates manually.</div>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                        <label class="block text-xs mb-1">X Coordinate:</label>
+                        <input type="number" id="zoomX" class="w-full px-2 py-1 bg-gray-800 border border-gray-700 rounded" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs mb-1">Y Coordinate:</label>
+                        <input type="number" id="zoomY" class="w-full px-2 py-1 bg-gray-800 border border-gray-700 rounded" value="0">
+                    </div>
+                </div>
+                <div class="slider-container mb-2">
+                    <label class="block text-sm mb-1">Zoom Factor: <span id="zoomValue">2.0</span></label>
+                    <input type="range" id="zoomSlider" min="1.1" max="5" step="0.1" value="2.0" class="w-full">
+                </div>
+                <button id="applyZoom" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- Negative Controls -->
+            <div id="negativeControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Negative Image</h3>
+                <p class="text-sm mb-3">Create a negative version of your image.</p>
+                <button id="applyNegative" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+            
+            <!-- Merge Controls -->
+            <div id="mergeControls" class="filter-controls hidden">
+                <h3 class="text-md font-semibold mb-3">Merge Images</h3>
+                <p class="text-sm mb-3">Upload a second image to merge with the current one.</p>
+                <div class="mb-3">
+                    <label class="block text-sm mb-1">Second Image:</label>
+                    <input type="file" id="secondImage" class="w-full text-sm" accept="image/*">
+                </div>
+                <div class="slider-container mb-2">
+                    <label class="block text-sm mb-1">Merge Ratio: <span id="alphaValue">0.5</span></label>
+                    <input type="range" id="alphaSlider" min="0" max="1" step="0.1" value="0.5" class="w-full">
+                </div>
+                <button id="applyMerge" class="w-full mt-2 py-2 bg-sky-600 hover:bg-sky-700 rounded">Apply</button>
+            </div>
+        </div>
+        
+        <!-- Save/Download Button -->
+        <div class="mt-6 border-t border-gray-700 pt-4">
+            <button id="downloadBtn" class="w-full py-2 bg-green-600 hover:bg-green-700 rounded flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Save Image
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden elements to handle state -->
+<input type="hidden" id="originalImageData">
+<input type="hidden" id="currentImageData">
+<input type="hidden" id="secondImageData">
+{% endblock %}
