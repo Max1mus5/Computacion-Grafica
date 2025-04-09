@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentación - Visor de Imágenes</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'docspage/css/docs.css' %}">
+    <!-- Prism.js para resaltado de código -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-tomorrow.min.css">
+</head>
+<body>
+    <div class="docs-container">
+        <header class="docs-header">
+            <div class="header-content">
+                <h1>Documentación del Visor de Imágenes</h1>
+                <nav>
+                    <a href="/" class="nav-link">Inicio</a>
+                    <a href="/editor/" class="nav-link">Editor</a>
+                </nav>
+            </div>
+        </header>
+
+        <div class="docs-content">
+            <aside class="docs-sidebar">
+                <div class="sidebar-content">
+                    <h3>Índice</h3>
+                    <div id="toc"></div>
+                </div>
+            </aside>
+
+            <main class="docs-main">
+                <div class="markdown-content">
+                    {{ content|safe }}
+                </div>
+            </main>
+        </div>
+
+        <footer class="docs-footer">
+            <div class="footer-content">
+                <p>&copy; 2025 Visor de Imágenes - Todos los derechos reservados</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js"></script>
+    <script>
+        // Generar el índice automáticamente
+        document.addEventListener('DOMContentLoaded', function() {
+            const headings = document.querySelectorAll('.markdown-content h1, .markdown-content h2, .markdown-content h3');
+            const toc = document.getElementById('toc');
+            const tocList = document.createElement('ul');
+            
+            headings.forEach((heading, index) => {
+                // Asignar un ID al encabezado si no tiene uno
+                if (!heading.id) {
+                    heading.id = `heading-${index}`;
+                }
+                
+                const listItem = document.createElement('li');
+                const link = document.createElement('a');
+                link.href = `#${heading.id}`;
+                link.textContent = heading.textContent;
+                
+                // Añadir clase según el nivel del encabezado
+                listItem.className = `toc-level-${heading.tagName.toLowerCase()}`;
+                
+                listItem.appendChild(link);
+                tocList.appendChild(listItem);
+            });
+            
+            toc.appendChild(tocList);
+        });
+    </script>
+</body>
+</html>
