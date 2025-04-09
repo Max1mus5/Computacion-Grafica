@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const histogramCanvas = document.getElementById('histogramCanvas');
   const filterOptions = document.querySelectorAll('.filter-option');
   const resetBtn = document.getElementById('resetBtn');
+  const saveImageBtn = document.querySelector('.bg-sky-600');
   
   // State variables
   let originalImageData = null;
@@ -22,12 +23,19 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Initialize editor page if preview image exists
   if (previewImage) {
-      // Get stored image data from localStorage (when navigating from home)
-      const storedImageData = localStorage.getItem('uploadedImageData');
+      console.log("Preview image element found");
+      
+      // Get stored image data from sessionStorage (when navigating from home)
+      const storedImageData = sessionStorage.getItem('originalImage');
+      console.log("Stored image data:", storedImageData ? "Found" : "Not found");
+      
       if (storedImageData) {
+          console.log("Loading image to editor");
           loadImageToEditor(storedImageData);
-          // Clear localStorage after loading
-          localStorage.removeItem('uploadedImageData');
+      } else {
+          // For testing, load a placeholder image
+          console.log("No stored image found, loading placeholder");
+          previewImage.src = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
       }
       
       // Initialize filter options
@@ -37,6 +45,14 @@ document.addEventListener('DOMContentLoaded', function() {
       if (resetBtn) {
           resetBtn.addEventListener('click', function() {
               resetToOriginalImage();
+          });
+      }
+      
+      // Initialize save image button
+      const downloadBtn = document.getElementById('downloadBtn');
+      if (downloadBtn) {
+          downloadBtn.addEventListener('click', function() {
+              downloadProcessedImage();
           });
       }
   }
@@ -89,14 +105,30 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   function loadImageToEditor(imageData) {
+      console.log("Loading image to editor...");
+      
       // Set preview image and store original data
       previewImage.src = imageData;
       originalImageData = imageData;
       currentImageData = imageData;
       
+      // Store in hidden inputs for form submission if needed
+      const originalDataInput = document.getElementById('originalImageData');
+      const currentDataInput = document.getElementById('currentImageData');
+      
+      if (originalDataInput) originalDataInput.value = imageData;
+      if (currentDataInput) currentDataInput.value = imageData;
+      
       // Generate histogram when image is loaded
       previewImage.onload = function() {
+          console.log("Image loaded successfully");
           generateHistogram(imageData);
+      };
+      
+      // Handle image load error
+      previewImage.onerror = function() {
+          console.error("Error loading image");
+          alert("Error loading image. Please try again.");
       };
   }
   
@@ -573,13 +605,44 @@ document.addEventListener('DOMContentLoaded', function() {
           spinner = document.createElement('div');
           spinner.id = 'loadingSpinner';
           spinner.className = 'loading-spinner';
-          document.querySelector('.relative.h-96').appendChild(spinner);
+          const container = document.querySelector('.relative.h-96');
+          if (container) {
+              container.appendChild(spinner);
+          }
       }
       
       // Show or hide the spinner
-      spinner.style.display = show ? 'block' : 'none';
+      if (spinner) {
+          spinner.style.display = show ? 'block' : 'none';
+      }
       
       // Dim the image while loading
-      previewImage.style.opacity = show ? '0.5' : '1';
+      if (previewImage) {
+          previewImage.style.opacity = show ? '0.5' : '1';
+      }
+  }
+  
+  function resetToOriginalImage() {
+      if (originalImageData) {
+          currentImageData = originalImageData;
+          previewImage.src = originalImageData;
+          generateHistogram(originalImageData);
+      }
+  }
+  
+  function downloadProcessedImage() {
+      if (currentImageData) {
+          // Create a temporary link element
+          const link = document.createElement('a');
+          link.href = currentImageData;
+          link.download = 'processed_image.png';
+          
+          // Append to the document, click it, and remove it
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      } else {
+          alert('No image to download');
+      }
   }
 });
