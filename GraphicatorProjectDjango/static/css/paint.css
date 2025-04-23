@@ -360,6 +360,8 @@ body {
 }
 
 .developer-info {
+    display: flex;
+    margin-left: 20%;
     text-align: center;
     flex-grow: 1;
 }
