@@ -1,0 +1,162 @@
+/* Estilos generales */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Encabezado */
+header {
+    background-color: #2c3e50;
+    color: white;
+    padding: 1rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+/* Barra de herramientas */
+.toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 0.5rem;
+    background-color: #34495e;
+    border-radius: 5px;
+}
+
+.tool-group, .color-group, .line-width-group, .algorithm-group, .action-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tool-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background-color: #3498db;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-btn:hover {
+    background-color: #2980b9;
+}
+
+.tool-btn.active {
+    background-color: #e74c3c;
+}
+
+.color-picker {
+    width: 40px;
+    height: 40px;
+    border: none;
+    cursor: pointer;
+}
+
+.color-palette {
+    display: flex;
+    gap: 5px;
+}
+
+.color-swatch {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #fff;
+    transition: transform 0.2s;
+}
+
+.color-swatch:hover {
+    transform: scale(1.2);
+}
+
+.line-width-group label, .algorithm-group label {
+    color: white;
+}
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.action-btn:hover {
+    background-color: #27ae60;
+}
+
+/* Contenedor del canvas */
+main {
+    padding: 1rem;
+}
+
+.canvas-container {
+    display: flex;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+#paint-canvas {
+    background-color: white;
+    border: 1px solid #ddd;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    cursor: crosshair;
+}
+
+/* Barra de estado */
+.status-bar {
+    display: flex;
+    justify-content: space-between;
+    background-color: #ecf0f1;
+    padding: 0.5rem;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+/* Pie de página */
+footer {
+    text-align: center;
+    padding: 1rem;
+    background-color: #2c3e50;
+    color: white;
+    margin-top: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .toolbar {
+        flex-direction: column;
+    }
+    
+    .tool-group, .color-group, .line-width-group, .algorithm-group, .action-group {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    #paint-canvas {
+        width: 100%;
+        height: auto;
+    }
+}

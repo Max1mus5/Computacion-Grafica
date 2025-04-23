@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paint Web - Computación Gráfica</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/paint.css' %}">
+</head>
+<body>
+    <header>
+        <h1>Paint Web</h1>
+        <div class="toolbar">
+            <div class="tool-group">
+                <button id="pencil-tool" class="tool-btn active" title="Lápiz">
+                    <i class="fas fa-pencil-alt"></i>
+                </button>
+                <button id="line-tool" class="tool-btn" title="Línea">
+                    <i class="fas fa-slash"></i>
+                </button>
+                <button id="rectangle-tool" class="tool-btn" title="Rectángulo">
+                    <i class="far fa-square"></i>
+                </button>
+                <button id="circle-tool" class="tool-btn" title="Círculo">
+                    <i class="far fa-circle"></i>
+                </button>
+                <button id="polygon-tool" class="tool-btn" title="Polígono">
+                    <i class="fas fa-draw-polygon"></i>
+                </button>
+                <button id="curve-tool" class="tool-btn" title="Curva Bézier">
+                    <i class="fas fa-bezier-curve"></i>
+                </button>
+                <button id="eraser-tool" class="tool-btn" title="Borrador">
+                    <i class="fas fa-eraser"></i>
+                </button>
+                <button id="clear-canvas" class="tool-btn" title="Limpiar lienzo">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+            <div class="color-group">
+                <input type="color" id="color-picker" value="#000000">
+                <div class="color-palette">
+                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                    <div class="color-swatch" style="background-color: #ff0000;" data-color="#ff0000"></div>
+                    <div class="color-swatch" style="background-color: #00ff00;" data-color="#00ff00"></div>
+                    <div class="color-swatch" style="background-color: #0000ff;" data-color="#0000ff"></div>
+                    <div class="color-swatch" style="background-color: #ffff00;" data-color="#ffff00"></div>
+                    <div class="color-swatch" style="background-color: #ff00ff;" data-color="#ff00ff"></div>
+                    <div class="color-swatch" style="background-color: #00ffff;" data-color="#00ffff"></div>
+                    <div class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff"></div>
+                </div>
+            </div>
+            <div class="line-width-group">
+                <label for="line-width">Grosor:</label>
+                <input type="range" id="line-width" min="1" max="20" value="2">
+                <span id="line-width-value">2px</span>
+            </div>
+            <div class="algorithm-group">
+                <label for="algorithm-select">Algoritmo:</label>
+                <select id="algorithm-select">
+                    <option value="BASIC">Básico</option>
+                    <option value="PYGAME">PyGame</option>
+                </select>
+            </div>
+            <div class="action-group">
+                <button id="save-btn" class="action-btn" title="Guardar imagen">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+                <button id="load-btn" class="action-btn" title="Cargar imagen">
+                    <i class="fas fa-upload"></i> Cargar
+                </button>
+            </div>
+        </div>
+    </header>
+    
+    <main>
+        <div class="canvas-container">
+            <canvas id="paint-canvas" width="800" height="600"></canvas>
+        </div>
+        <div class="status-bar">
+            <span id="coordinates">X: 0, Y: 0</span>
+            <span id="current-tool">Herramienta: Lápiz</span>
+            <span id="current-color">Color: #000000</span>
+        </div>
+    </main>
+    
+    <footer>
+        <p>Desarrollado para la clase de Computación Gráfica</p>
+    </footer>
+
+    <!-- Font Awesome para los iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- Script principal -->
+    <script src="{% static 'js/paint.js' %}"></script>
+</body>
+</html>
