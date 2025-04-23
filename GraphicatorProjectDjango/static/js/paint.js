@@ -612,7 +612,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Actualizar el estado
-        state.currentTool = tool;
+        if (tool === 'grid') {
+            // Si es la herramienta de cuadrícula, solo activamos/desactivamos la cuadrícula
+            toggleGrid();
+            // Mantenemos la herramienta actual
+            if (toolButtons[state.currentTool]) {
+                toolButtons[state.currentTool].classList.add('active');
+            }
+        } else {
+            state.currentTool = tool;
+        }
         
         // Actualizar el texto en español
         let toolName = '';
@@ -631,6 +640,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         currentToolDisplay.textContent = `Herramienta: ${toolName}`;
+    }
+    
+    // Función para mostrar/ocultar la cuadrícula
+    function toggleGrid() {
+        state.showGrid = !state.showGrid;
+        const gridBackground = document.querySelector('.grid-background');
+        if (state.showGrid) {
+            gridBackground.style.display = 'block';
+        } else {
+            gridBackground.style.display = 'none';
+        }
     }
     
     // Función para cambiar el color activo
@@ -716,6 +736,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar la pestaña activa
     setActiveTab('draw');
+    
+    // Inicializar la cuadrícula
+    const gridBackground = document.querySelector('.grid-background');
+    if (state.showGrid) {
+        gridBackground.style.display = 'block';
+    } else {
+        gridBackground.style.display = 'none';
+    }
     
     // Eventos para los botones de herramientas
     Object.entries(toolButtons).forEach(([tool, button]) => {
@@ -965,6 +993,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 state.shapes.push(shape);
                 redrawCanvas();
             }
+        }
+        
+        // Mostrar/ocultar cuadrícula con G
+        if (e.key.toLowerCase() === 'g') {
+            toggleGrid();
         }
         
         // Guardar con Ctrl+S
