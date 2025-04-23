@@ -559,6 +559,56 @@ class FreehandEraseAlgorithm(EraseAlgorithm):
         if len(filtered_points) > 1:
             pygame.draw.lines(surface, erase_color, False, filtered_points, line_width)
 
+class FreehandDrawAlgorithm(DrawingAlgorithm):
+    """Algoritmo para dibujar a mano alzada."""
+    
+    def __init__(self):
+        super().__init__("BASIC")
+    
+    def draw(self, surface, shape_data, canvas_rect=None):
+        """
+        Dibuja una línea a mano alzada.
+        
+        Args:
+            surface (pygame.Surface): Superficie donde se dibujará.
+            shape_data (dict): Datos de la línea (points, color, line_width).
+            canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
+        """
+        points = shape_data.get('points', [])
+        color = shape_data.get('color', (0, 0, 0))
+        line_width = shape_data.get('line_width', 1)
+        
+        if len(points) < 2:
+            return
+        
+        if canvas_rect is not None:
+            filtered_points = [p for p in points if canvas_rect.collidepoint(p)]
+        else:
+            filtered_points = points
+        
+        # Dibujar puntos individuales para trazos más precisos
+        for i in range(len(filtered_points) - 1):
+            x1, y1 = filtered_points[i]
+            x2, y2 = filtered_points[i + 1]
+            
+            # Usar DDA para dibujar líneas entre puntos consecutivos
+            dx = x2 - x1
+            dy = y2 - y1
+            steps = max(abs(dx), abs(dy))
+            
+            if steps == 0:
+                pygame.draw.circle(surface, color, (round(x1), round(y1)), max(1, line_width // 2))
+                continue
+                
+            x_increment = dx / steps
+            y_increment = dy / steps
+            x, y = x1, y1
+            
+            for _ in range(steps + 1):
+                pygame.draw.circle(surface, color, (round(x), round(y)), max(1, line_width // 2))
+                x += x_increment
+                y += y_increment
+
 class Shape:
     """Clase base para todas las formas geométricas."""
     
@@ -767,6 +817,37 @@ class EraseFree(Shape):
             }
             self.algorithm.draw(surface, shape_data, canvas_rect)
 
+class Freehand(Shape):
+    """Representa una línea a mano alzada."""
+    
+    def __init__(self, points=None, color=(0, 0, 0), line_width=1):
+        """
+        Inicializa una línea a mano alzada.
+        
+        Args:
+            points (list): Lista de puntos que forman la línea.
+            color (tuple): Color de la línea en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        algorithm = FreehandDrawAlgorithm()
+        super().__init__(points, color, line_width, algorithm)
+    
+    def draw(self, surface, canvas_rect=None):
+        """
+        Dibuja una línea a mano alzada en la superficie.
+        
+        Args:
+            surface (pygame.Surface): Superficie donde se dibujará.
+            canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
+        """
+        if self.algorithm:
+            shape_data = {
+                'points': self.points,
+                'color': self.color,
+                'line_width': self.line_width
+            }
+            self.algorithm.draw(surface, shape_data, canvas_rect)
+
 class ShapeFactory:
     """Fábrica para crear diferentes tipos de formas."""
     
@@ -776,7 +857,7 @@ class ShapeFactory:
         Crea una forma del tipo especificado.
         
         Args:
-            shape_type (str): Tipo de forma ("LINE", "CIRCLE", "RECTANGLE", "POLYGON", "CURVE", "ERASE_AREA", "ERASE_FREE").
+            shape_type (str): Tipo de forma ("LINE", "CIRCLE", "RECTANGLE", "POLYGON", "CURVE", "FREEHAND", "ERASE_AREA", "ERASE_FREE").
             points (list): Lista de puntos que definen la forma.
             color (tuple): Color de la forma en formato RGB.
             line_width (int): Grosor de las líneas.
@@ -798,6 +879,8 @@ class ShapeFactory:
             return Polygon(points, color, line_width, algorithm_type)
         elif shape_type == "CURVE":
             return Curve(points, color, line_width, algorithm_type)
+        elif shape_type == "FREEHAND":
+            return Freehand(points, color, line_width)
         elif shape_type == "ERASE_AREA":
             return EraseArea(points, color, line_width)
         elif shape_type == "ERASE_FREE":

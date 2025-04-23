@@ -1,5 +1,5 @@
 /**
- * Pygame Graphing App - Aplicación de dibujo para navegador
+ * Graficador Pygame - Aplicación de dibujo para navegador
  * Basado en la biblioteca PygameDrawLibrary
  */
 
@@ -28,18 +28,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Herramientas
     const toolButtons = {
+        freehand: document.getElementById('freehand-tool'),
         line: document.getElementById('line-tool'),
         circle: document.getElementById('circle-tool'),
         bezier: document.getElementById('bezier-tool'),
         grid: document.getElementById('grid-tool'),
         rectangle: document.getElementById('rectangle-tool'),
         triangle: document.getElementById('triangle-tool'),
-        polygon: document.getElementById('polygon-tool')
+        polygon: document.getElementById('polygon-tool'),
+        ellipse: document.getElementById('ellipse-tool')
     };
     
     // Estado de la aplicación
     const state = {
-        currentTool: 'line',
+        currentTool: 'freehand',
         currentColor: '#FFBF00',
         backgroundColor: '#1A1A24',
         lineWidth: 2,
@@ -98,6 +100,36 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         
+        // Función para dibujar una línea con el algoritmo de Bresenham
+        drawLineBresenham: function(x1, y1, x2, y2, color, lineWidth) {
+            let x = Math.round(x1);
+            let y = Math.round(y1);
+            const dx = Math.abs(Math.round(x2) - x);
+            const dy = Math.abs(Math.round(y2) - y);
+            const sx = (x < Math.round(x2)) ? 1 : -1;
+            const sy = (y < Math.round(y2)) ? 1 : -1;
+            let err = dx - dy;
+            
+            while (true) {
+                ctx.beginPath();
+                ctx.arc(x, y, Math.max(1, lineWidth / 2), 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                
+                if (x === Math.round(x2) && y === Math.round(y2)) break;
+                
+                const e2 = 2 * err;
+                if (e2 > -dy) {
+                    err -= dy;
+                    x += sx;
+                }
+                if (e2 < dx) {
+                    err += dx;
+                    y += sy;
+                }
+            }
+        },
+        
         // Función para dibujar una línea con la API de Canvas
         drawLinePygame: function(x1, y1, x2, y2, color, lineWidth) {
             ctx.beginPath();
@@ -108,36 +140,43 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         },
         
-        // Función para dibujar un círculo con el algoritmo del punto medio
-        drawCircleMidpoint: function(centerX, centerY, radius, color) {
+        // Función para dibujar un círculo con el algoritmo de Bresenham
+        drawCircleBresenham: function(centerX, centerY, radius, color, lineWidth) {
             let x = 0;
             let y = radius;
-            let d = 1 - radius;
+            let d = 3 - 2 * radius;
             
-            this.drawCirclePoints(centerX, centerY, x, y, color);
-            
-            while (x < y) {
-                if (d < 0) {
-                    d = d + 2 * x + 3;
-                } else {
-                    d = d + 2 * (x - y) + 5;
-                    y--;
-                }
-                x++;
-                this.drawCirclePoints(centerX, centerY, x, y, color);
-            }
-        },
-        
-        // Función auxiliar para dibujar los puntos de un círculo
-        drawCirclePoints: function(xc, yc, x, y, color) {
-            const points = [
-                [xc + x, yc + y], [xc - x, yc + y], [xc + x, yc - y], [xc - x, yc - y],
-                [xc + y, yc + x], [xc - y, yc + x], [xc + y, yc - x], [xc - y, yc - x]
-            ];
-            
-            for (const [px, py] of points) {
+            const drawPixel = (x, y) => {
+                ctx.beginPath();
+                ctx.arc(x, y, Math.max(1, lineWidth / 2), 0, Math.PI * 2);
                 ctx.fillStyle = color;
-                ctx.fillRect(px, py, 1, 1);
+                ctx.fill();
+            };
+            
+            const drawCirclePoints = (cx, cy, x, y) => {
+                drawPixel(cx + x, cy + y);
+                drawPixel(cx - x, cy + y);
+                drawPixel(cx + x, cy - y);
+                drawPixel(cx - x, cy - y);
+                drawPixel(cx + y, cy + x);
+                drawPixel(cx - y, cy + x);
+                drawPixel(cx + y, cy - x);
+                drawPixel(cx - y, cy - x);
+            };
+            
+            drawCirclePoints(centerX, centerY, x, y);
+            
+            while (y >= x) {
+                x++;
+                
+                if (d > 0) {
+                    y--;
+                    d = d + 4 * (x - y) + 10;
+                } else {
+                    d = d + 4 * x + 6;
+                }
+                
+                drawCirclePoints(centerX, centerY, x, y);
             }
         },
         
@@ -150,6 +189,76 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         },
         
+        // Función para dibujar una elipse con el algoritmo de Bresenham
+        drawEllipseBresenham: function(centerX, centerY, radiusX, radiusY, color, lineWidth) {
+            let x = 0;
+            let y = radiusY;
+            
+            // Parámetros iniciales de la región 1
+            let d1 = (radiusY * radiusY) - (radiusX * radiusX * radiusY) + (0.25 * radiusX * radiusX);
+            let dx = 2 * radiusY * radiusY * x;
+            let dy = 2 * radiusX * radiusX * y;
+            
+            const drawPixel = (x, y) => {
+                ctx.beginPath();
+                ctx.arc(x, y, Math.max(1, lineWidth / 2), 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+            };
+            
+            // Región 1
+            while (dx < dy) {
+                drawPixel(centerX + x, centerY + y);
+                drawPixel(centerX - x, centerY + y);
+                drawPixel(centerX + x, centerY - y);
+                drawPixel(centerX - x, centerY - y);
+                
+                x++;
+                dx += 2 * radiusY * radiusY;
+                
+                if (d1 < 0) {
+                    d1 += dx + radiusY * radiusY;
+                } else {
+                    y--;
+                    dy -= 2 * radiusX * radiusX;
+                    d1 += dx - dy + radiusY * radiusY;
+                }
+            }
+            
+            // Parámetros iniciales de la región 2
+            let d2 = ((radiusY * radiusY) * ((x + 0.5) * (x + 0.5))) + 
+                     ((radiusX * radiusX) * ((y - 1) * (y - 1))) - 
+                     (radiusX * radiusX * radiusY * radiusY);
+            
+            // Región 2
+            while (y >= 0) {
+                drawPixel(centerX + x, centerY + y);
+                drawPixel(centerX - x, centerY + y);
+                drawPixel(centerX + x, centerY - y);
+                drawPixel(centerX - x, centerY - y);
+                
+                y--;
+                dy -= 2 * radiusX * radiusX;
+                
+                if (d2 > 0) {
+                    d2 += radiusX * radiusX - dy;
+                } else {
+                    x++;
+                    dx += 2 * radiusY * radiusY;
+                    d2 += dx - dy + radiusX * radiusX;
+                }
+            }
+        },
+        
+        // Función para dibujar una elipse con la API de Canvas
+        drawEllipsePygame: function(centerX, centerY, radiusX, radiusY, color, lineWidth) {
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        },
+        
         // Función para dibujar un rectángulo con líneas básicas
         drawRectangleBasic: function(x1, y1, x2, y2, color, lineWidth) {
             const left = Math.min(x1, x2);
@@ -157,11 +266,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const right = Math.max(x1, x2);
             const bottom = Math.max(y1, y2);
             
-            // Dibujar las cuatro líneas del rectángulo
-            this.drawLinePygame(left, top, right, top, color, lineWidth);
-            this.drawLinePygame(right, top, right, bottom, color, lineWidth);
-            this.drawLinePygame(right, bottom, left, bottom, color, lineWidth);
-            this.drawLinePygame(left, bottom, left, top, color, lineWidth);
+            // Dibujar las cuatro líneas del rectángulo usando Bresenham
+            this.drawLineBresenham(left, top, right, top, color, lineWidth);
+            this.drawLineBresenham(right, top, right, bottom, color, lineWidth);
+            this.drawLineBresenham(right, bottom, left, bottom, color, lineWidth);
+            this.drawLineBresenham(left, bottom, left, top, color, lineWidth);
         },
         
         // Función para dibujar un rectángulo con la API de Canvas
@@ -182,14 +291,20 @@ document.addEventListener('DOMContentLoaded', function() {
         drawTriangle: function(points, color, lineWidth) {
             if (points.length < 3) return;
             
-            ctx.beginPath();
-            ctx.moveTo(points[0][0], points[0][1]);
-            ctx.lineTo(points[1][0], points[1][1]);
-            ctx.lineTo(points[2][0], points[2][1]);
-            ctx.lineTo(points[0][0], points[0][1]);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = lineWidth;
-            ctx.stroke();
+            if (state.algorithm === 'BASIC') {
+                this.drawLineBresenham(points[0][0], points[0][1], points[1][0], points[1][1], color, lineWidth);
+                this.drawLineBresenham(points[1][0], points[1][1], points[2][0], points[2][1], color, lineWidth);
+                this.drawLineBresenham(points[2][0], points[2][1], points[0][0], points[0][1], color, lineWidth);
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(points[0][0], points[0][1]);
+                ctx.lineTo(points[1][0], points[1][1]);
+                ctx.lineTo(points[2][0], points[2][1]);
+                ctx.lineTo(points[0][0], points[0][1]);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
+            }
         },
         
         // Función para dibujar un polígono con líneas básicas
@@ -197,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (points.length < 2) return;
             
             for (let i = 0; i < points.length - 1; i++) {
-                this.drawLinePygame(
+                this.drawLineBresenham(
                     points[i][0], points[i][1],
                     points[i + 1][0], points[i + 1][1],
                     color, lineWidth
@@ -206,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Cerrar el polígono si tiene más de 2 puntos
             if (points.length > 2) {
-                this.drawLinePygame(
+                this.drawLineBresenham(
                     points[points.length - 1][0], points[points.length - 1][1],
                     points[0][0], points[0][1],
                     color, lineWidth
@@ -235,14 +350,29 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         },
         
-        // Función para dibujar una curva de Bézier cuadrática
-        drawBezierCurve: function(p0, p1, p2, color, lineWidth, steps = 100) {
+        // Función para dibujar una curva de Bézier cúbica (4 puntos de control)
+        drawBezierCurve: function(points, color, lineWidth, steps = 100) {
+            if (points.length < 4) return;
+            
+            const p0 = points[0];
+            const p1 = points[1];
+            const p2 = points[2];
+            const p3 = points[3];
+            
             const curvePoints = [];
             
             for (let i = 0; i <= steps; i++) {
                 const t = i / steps;
-                const x = Math.pow(1 - t, 2) * p0[0] + 2 * (1 - t) * t * p1[0] + Math.pow(t, 2) * p2[0];
-                const y = Math.pow(1 - t, 2) * p0[1] + 2 * (1 - t) * t * p1[1] + Math.pow(t, 2) * p2[1];
+                const t2 = t * t;
+                const t3 = t2 * t;
+                const mt = 1 - t;
+                const mt2 = mt * mt;
+                const mt3 = mt2 * mt;
+                
+                // Fórmula de Bézier cúbica: B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
+                const x = mt3 * p0[0] + 3 * mt2 * t * p1[0] + 3 * mt * t2 * p2[0] + t3 * p3[0];
+                const y = mt3 * p0[1] + 3 * mt2 * t * p1[1] + 3 * mt * t2 * p2[1] + t3 * p3[1];
+                
                 curvePoints.push([Math.round(x), Math.round(y)]);
             }
             
@@ -250,6 +380,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.drawPolygonBasic(curvePoints, color, lineWidth);
             } else {
                 this.drawPolygonPygame(curvePoints, color, lineWidth);
+            }
+        },
+        
+        // Función para dibujar a mano alzada
+        drawFreehand: function(points, color, lineWidth) {
+            if (points.length < 2) return;
+            
+            if (state.algorithm === 'BASIC') {
+                // Usar DDA para dibujar líneas entre puntos consecutivos
+                for (let i = 0; i < points.length - 1; i++) {
+                    this.drawLineDDA(
+                        points[i][0], points[i][1],
+                        points[i + 1][0], points[i + 1][1],
+                        color, lineWidth
+                    );
+                }
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(points[0][0], points[0][1]);
+                
+                for (let i = 1; i < points.length; i++) {
+                    ctx.lineTo(points[i][0], points[i][1]);
+                }
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth;
+                ctx.stroke();
             }
         }
     };
@@ -259,13 +416,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const { type, points, color, lineWidth, algorithm } = shape;
         
         switch (type) {
+            case 'freehand':
+                drawingFunctions.drawFreehand(points, color, lineWidth);
+                break;
+                
             case 'line':
                 if (points.length >= 2) {
                     const [x1, y1] = points[0];
                     const [x2, y2] = points[points.length - 1];
                     
                     if (algorithm === 'BASIC') {
-                        drawingFunctions.drawLineDDA(x1, y1, x2, y2, color, lineWidth);
+                        drawingFunctions.drawLineBresenham(x1, y1, x2, y2, color, lineWidth);
                     } else {
                         drawingFunctions.drawLinePygame(x1, y1, x2, y2, color, lineWidth);
                     }
@@ -279,9 +440,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     const radius = Math.hypot(pointX - centerX, pointY - centerY);
                     
                     if (algorithm === 'BASIC') {
-                        drawingFunctions.drawCircleMidpoint(centerX, centerY, radius, color);
+                        drawingFunctions.drawCircleBresenham(centerX, centerY, radius, color, lineWidth);
                     } else {
                         drawingFunctions.drawCirclePygame(centerX, centerY, radius, color, lineWidth);
+                    }
+                }
+                break;
+                
+            case 'ellipse':
+                if (points.length >= 2) {
+                    const [centerX, centerY] = points[0];
+                    const [pointX, pointY] = points[1];
+                    const radiusX = Math.abs(pointX - centerX);
+                    const radiusY = Math.abs(pointY - centerY);
+                    
+                    if (algorithm === 'BASIC') {
+                        drawingFunctions.drawEllipseBresenham(centerX, centerY, radiusX, radiusY, color, lineWidth);
+                    } else {
+                        drawingFunctions.drawEllipsePygame(centerX, centerY, radiusX, radiusY, color, lineWidth);
                     }
                 }
                 break;
@@ -321,18 +497,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
                 
             case 'bezier':
-                if (points.length >= 3) {
-                    drawingFunctions.drawBezierCurve(
-                        points[0], points[1], points[2],
-                        color, lineWidth
-                    );
-                } else if (preview && points.length === 2) {
-                    // Para la vista previa, mostrar una línea entre los dos primeros puntos
-                    drawingFunctions.drawLinePygame(
-                        points[0][0], points[0][1],
-                        points[1][0], points[1][1],
-                        color, lineWidth
-                    );
+                if (points.length >= 4) {
+                    drawingFunctions.drawBezierCurve(points, color, lineWidth);
+                } else if (preview) {
+                    // Para la vista previa, mostrar los puntos de control
+                    for (let i = 0; i < points.length - 1; i++) {
+                        drawingFunctions.drawLinePygame(
+                            points[i][0], points[i][1],
+                            points[i+1][0], points[i+1][1],
+                            color, 1
+                        );
+                    }
                 }
                 break;
         }
@@ -354,7 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Dibujar puntos de control para formas en progreso
-        if (state.isDrawing && state.currentShape) {
+        if (state.isDrawing && state.currentShape && state.currentTool !== 'freehand') {
             state.currentShape.points.forEach(point => {
                 ctx.beginPath();
                 ctx.arc(point[0], point[1], 4, 0, Math.PI * 2);
@@ -378,7 +553,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Actualizar el estado
         state.currentTool = tool;
-        currentToolDisplay.textContent = `Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`;
+        
+        // Actualizar el texto en español
+        let toolName = '';
+        switch (tool) {
+            case 'freehand': toolName = 'Trazo Libre'; break;
+            case 'line': toolName = 'Línea'; break;
+            case 'circle': toolName = 'Círculo'; break;
+            case 'bezier': toolName = 'Curva Bézier'; break;
+            case 'grid': toolName = 'Cuadrícula'; break;
+            case 'rectangle': toolName = 'Rectángulo'; break;
+            case 'triangle': toolName = 'Triángulo'; break;
+            case 'polygon': toolName = 'Polígono'; break;
+            case 'ellipse': toolName = 'Elipse'; break;
+            default: toolName = tool.charAt(0).toUpperCase() + tool.slice(1);
+        }
+        
+        currentToolDisplay.textContent = `Herramienta: ${toolName}`;
     }
     
     // Función para cambiar el color activo
@@ -406,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function setStrokeWidth(width) {
         state.lineWidth = width;
         strokeWidthValue.textContent = `${width}px`;
-        currentStrokeDisplay.textContent = `Stroke: ${width}px`;
+        currentStrokeDisplay.textContent = `Grosor: ${width}px`;
     }
     
     // Función para cambiar la pestaña activa
@@ -454,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Inicializar la herramienta activa
-    setActiveTool('line');
+    setActiveTool('freehand');
     
     // Inicializar el color activo
     setActiveColor('#FFBF00');
@@ -517,7 +708,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Evento para guardar la imagen
     saveImageBtn.addEventListener('click', () => {
         const link = document.createElement('a');
-        link.download = 'pygame-graphing-app.png';
+        link.download = 'graficador-pygame.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
     });
@@ -542,10 +733,19 @@ document.addEventListener('DOMContentLoaded', function() {
             algorithm: state.algorithm
         };
         
+        // Para el trazo libre, añadimos la forma inmediatamente
+        if (state.currentTool === 'freehand') {
+            if (!state.shapes.includes(state.currentShape)) {
+                state.shapes.push(state.currentShape);
+            }
+            redrawCanvas();
+            return;
+        }
+        
         // Para el polígono, necesitamos manejar clics múltiples
         if (state.currentTool === 'polygon') {
             // Si ya hay una forma en progreso, añadir el punto
-            if (state.shapes.length > 0 && 
+            if (state.shapes.length > 0 &&
                 (state.shapes[state.shapes.length - 1].type === 'polygon') &&
                 !state.shapes[state.shapes.length - 1].completed) {
                 
@@ -559,7 +759,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Para el triángulo, necesitamos 3 puntos
         if (state.currentTool === 'triangle') {
-            if (state.shapes.length > 0 && 
+            if (state.shapes.length > 0 &&
                 (state.shapes[state.shapes.length - 1].type === 'triangle') &&
                 state.shapes[state.shapes.length - 1].points.length < 3) {
                 
@@ -576,16 +776,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Para la curva de Bézier, necesitamos 3 puntos
+        // Para la curva de Bézier, necesitamos 4 puntos
         if (state.currentTool === 'bezier') {
-            if (state.shapes.length > 0 && 
+            if (state.shapes.length > 0 &&
                 (state.shapes[state.shapes.length - 1].type === 'bezier') &&
-                state.shapes[state.shapes.length - 1].points.length < 3) {
+                state.shapes[state.shapes.length - 1].points.length < 4) {
                 
                 state.shapes[state.shapes.length - 1].points.push([x, y]);
                 state.currentShape = state.shapes[state.shapes.length - 1];
                 
-                if (state.currentShape.points.length >= 3) {
+                if (state.currentShape.points.length >= 4) {
                     state.currentShape.completed = true;
                     state.isDrawing = false;
                 }
@@ -605,8 +805,15 @@ document.addEventListener('DOMContentLoaded', function() {
         coordinatesDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
         
         if (state.isDrawing && state.currentShape) {
+            // Para el trazo libre, añadir el punto actual
+            if (state.currentTool === 'freehand') {
+                state.currentShape.points.push([x, y]);
+                redrawCanvas();
+                return;
+            }
+            
             // Para herramientas que solo necesitan el punto inicial y final
-            if (state.currentShape.points.length > 1 && 
+            if (state.currentShape.points.length > 1 &&
                 !['polygon', 'triangle', 'bezier'].includes(state.currentTool)) {
                 state.currentShape.points[state.currentShape.points.length - 1] = [x, y];
             } else if (!['polygon', 'triangle', 'bezier'].includes(state.currentTool)) {
@@ -620,6 +827,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     canvas.addEventListener('mouseup', (e) => {
         if (state.isDrawing && state.currentShape) {
+            // Para el trazo libre, completar la forma
+            if (state.currentTool === 'freehand') {
+                state.currentShape.completed = true;
+                state.isDrawing = false;
+                state.currentShape = null;
+                
+                // Limpiar la pila de rehacer cuando se dibuja algo nuevo
+                state.redoStack = [];
+                return;
+            }
+            
             // Para el polígono, no completamos la forma hasta que se haga doble clic
             if (state.currentTool === 'polygon') {
                 if (!state.shapes.includes(state.currentShape)) {
@@ -636,7 +854,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 if ((state.currentTool === 'triangle' && state.currentShape.points.length < 3) ||
-                    (state.currentTool === 'bezier' && state.currentShape.points.length < 3)) {
+                    (state.currentTool === 'bezier' && state.currentShape.points.length < 4)) {
                     state.isDrawing = false;
                     return;
                 }
@@ -658,8 +876,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     canvas.addEventListener('dblclick', (e) => {
         // Completar un polígono con doble clic
-        if (state.currentTool === 'polygon' && 
-            state.shapes.length > 0 && 
+        if (state.currentTool === 'polygon' &&
+            state.shapes.length > 0 &&
             state.shapes[state.shapes.length - 1].type === 'polygon' &&
             !state.shapes[state.shapes.length - 1].completed) {
             
@@ -710,6 +928,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Atajos de teclado para herramientas
         switch (e.key.toLowerCase()) {
+            case 'f':
+                setActiveTab('draw');
+                setActiveTool('freehand');
+                break;
             case 'l':
                 setActiveTab('draw');
                 setActiveTool('line');
@@ -726,11 +948,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 setActiveTab('draw');
                 setActiveTool('grid');
                 break;
-            case 's':
-                if (!e.ctrlKey) {
-                    setActiveTab('shapes');
-                    setActiveTool('rectangle');
-                }
+            case 'r':
+                setActiveTab('shapes');
+                setActiveTool('rectangle');
                 break;
             case 't':
                 setActiveTab('shapes');
@@ -739,6 +959,10 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'p':
                 setActiveTab('shapes');
                 setActiveTool('polygon');
+                break;
+            case 'e':
+                setActiveTab('shapes');
+                setActiveTool('ellipse');
                 break;
         }
     });

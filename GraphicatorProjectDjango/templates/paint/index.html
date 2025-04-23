@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pygame Graphing App - Computación Gráfica</title>
+    <title>Graficador Pygame - Computación Gráfica</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/paint.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -11,54 +11,62 @@
 <body>
     <div class="app-container">
         <div class="main-content">
-            <!-- Tools Panel (20% width) -->
+            <!-- Panel de herramientas (20% de ancho) -->
             <div class="tools-panel">
-                <!-- Tool Categories -->
+                <!-- Categorías de herramientas -->
                 <div class="tab-buttons">
-                    <button id="draw-tab" class="tab-btn active">Draw</button>
-                    <button id="shapes-tab" class="tab-btn">Shapes</button>
+                    <button id="draw-tab" class="tab-btn active">Dibujar</button>
+                    <button id="shapes-tab" class="tab-btn">Formas</button>
                 </div>
 
-                <!-- Tools Section -->
+                <!-- Sección de herramientas -->
                 <div class="panel-section">
-                    <h3 class="section-title">TOOLS</h3>
-                    
-                    <!-- Drawing Tools -->
+                    <h3 class="section-title">HERRAMIENTAS</h3>
+
+                    <!-- Herramientas de dibujo -->
                     <div id="draw-tools" class="tools-grid">
-                        <button id="line-tool" class="tool-btn active" title="DDA/Bresenham Line (L)">
+                        <button id="freehand-tool" class="tool-btn active" title="Trazo Libre (F)">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button id="line-tool" class="tool-btn" title="Línea DDA/Bresenham (L)">
                             <i class="fas fa-pen"></i>
                         </button>
-                        <button id="circle-tool" class="tool-btn" title="Circle (C)">
+                        <button id="circle-tool" class="tool-btn" title="Círculo (C)">
                             <i class="far fa-circle"></i>
                         </button>
-                        <button id="bezier-tool" class="tool-btn" title="Bézier Curve (B)">
+                        <button id="bezier-tool" class="tool-btn" title="Curva Bézier (B)">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M3 3C7 10 17 10 21 3"></path>
                                 <path d="M3 21C7 14 17 14 21 21"></path>
                             </svg>
                         </button>
-                        <button id="grid-tool" class="tool-btn" title="Toggle Grid (G)">
+                        <button id="grid-tool" class="tool-btn" title="Mostrar/Ocultar Cuadrícula (G)">
                             <i class="fas fa-th"></i>
                         </button>
                     </div>
-                    
-                    <!-- Shapes Tools (hidden by default) -->
+
+                    <!-- Herramientas de formas (ocultas por defecto) -->
                     <div id="shapes-tools" class="tools-grid" style="display: none;">
-                        <button id="rectangle-tool" class="tool-btn" title="Square/Rectangle (S)">
+                        <button id="rectangle-tool" class="tool-btn" title="Rectángulo (R)">
                             <i class="far fa-square"></i>
                         </button>
-                        <button id="triangle-tool" class="tool-btn" title="Triangle (T)">
+                        <button id="triangle-tool" class="tool-btn" title="Triángulo (T)">
                             <i class="fas fa-play" style="transform: rotate(90deg);"></i>
                         </button>
-                        <button id="polygon-tool" class="tool-btn" title="Polygon (P)">
+                        <button id="polygon-tool" class="tool-btn" title="Polígono (P)">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M12 2L4 7l1.5 10.5L12 22l6.5-4.5L20 7l-8-5z"></path>
+                            </svg>
+                        </button>
+                        <button id="ellipse-tool" class="tool-btn" title="Elipse (E)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <ellipse cx="12" cy="12" rx="10" ry="6"></ellipse>
                             </svg>
                         </button>
                     </div>
                 </div>
 
-                <!-- Color Picker -->
+                <!-- Selector de color -->
                 <div class="panel-section">
                     <h3 class="section-title">COLOR</h3>
                     <div id="color-display" class="color-display">
@@ -66,7 +74,7 @@
                         <span class="color-value">#FFBF00</span>
                         <i class="fas fa-chevron-down"></i>
                     </div>
-                    
+
                     <div id="color-picker" class="color-picker">
                         <div class="color-swatch" style="background-color: #FFBF00;" data-color="#FFBF00"></div>
                         <div class="color-swatch" style="background-color: #CC5500;" data-color="#CC5500"></div>
@@ -75,63 +83,63 @@
                         <div class="color-swatch" style="background-color: #2196F3;" data-color="#2196F3"></div>
                         <div class="color-swatch" style="background-color: #F44336;" data-color="#F44336"></div>
                         <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
-                        <div class="color-swatch custom" style="background: linear-gradient(135deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);" title="Custom Color">
+                        <div class="color-swatch custom" style="background: linear-gradient(135deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);" title="Color Personalizado">
                             <input type="color" id="custom-color-input" value="#FFBF00">
                         </div>
                     </div>
                 </div>
 
-                <!-- Stroke Width -->
+                <!-- Grosor de línea -->
                 <div class="panel-section">
-                    <h3 class="section-title">STROKE WIDTH</h3>
+                    <h3 class="section-title">GROSOR DE LÍNEA</h3>
                     <div class="stroke-width-control">
                         <input type="range" id="stroke-width" min="1" max="10" value="2" class="stroke-slider">
                         <div class="stroke-value">2px</div>
                     </div>
                 </div>
 
-                <!-- Actions -->
+                <!-- Acciones -->
                 <div class="panel-section">
-                    <h3 class="section-title">ACTIONS</h3>
+                    <h3 class="section-title">ACCIONES</h3>
                     <div class="actions-buttons">
-                        <button id="clear-canvas" class="action-btn" title="Clear all drawings (Del)">
+                        <button id="clear-canvas" class="action-btn" title="Limpiar todo el lienzo (Supr)">
                             <i class="fas fa-trash-alt"></i>
-                            <span>Clear Canvas</span>
+                            <span>Limpiar Lienzo</span>
                         </button>
-                        <button id="save-image" class="action-btn" title="Save as PNG (Ctrl+S)">
+                        <button id="save-image" class="action-btn" title="Guardar como PNG (Ctrl+S)">
                             <i class="fas fa-save"></i>
-                            <span>Save Image</span>
+                            <span>Guardar Imagen</span>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Canvas Area (80% width) -->
+            <!-- Área del lienzo (80% de ancho) -->
             <div class="canvas-area">
-                <!-- Grid background -->
+                <!-- Fondo de cuadrícula -->
                 <div class="grid-background"></div>
-                
-                <!-- Canvas for drawing -->
+
+                <!-- Lienzo para dibujar -->
                 <canvas id="paint-canvas" width="800" height="600"></canvas>
-                
-                <!-- Coordinates display -->
+
+                <!-- Visualización de coordenadas -->
                 <div class="coordinates-display">X: 300, Y: 200</div>
-                
-                <!-- Fullscreen toggle -->
-                <button id="fullscreen-toggle" class="fullscreen-btn" title="Toggle Fullscreen">
+
+                <!-- Botón de pantalla completa -->
+                <button id="fullscreen-toggle" class="fullscreen-btn" title="Alternar Pantalla Completa">
                     <i class="fas fa-expand"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Status Bar -->
+        <!-- Barra de estado -->
         <div class="status-bar">
             <div class="status-info">
-                <span id="current-tool">Tool: Line</span>
+                <span id="current-tool">Herramienta: Trazo Libre</span>
                 <span id="current-color">Color: #FFBF00</span>
-                <span id="current-stroke">Stroke: 2px</span>
+                <span id="current-stroke">Grosor: 2px</span>
             </div>
-            <div class="status-message">Ready</div>
+            <div class="status-message">Listo</div>
         </div>
     </div>
 
