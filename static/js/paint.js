@@ -1,5 +1,5 @@
 /**
- * Paint Web - Aplicación de dibujo para navegador
+ * Pygame Graphing App - Aplicación de dibujo para navegador
  * Basado en la biblioteca PygameDrawLibrary
  */
 
@@ -7,33 +7,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Elementos del DOM
     const canvas = document.getElementById('paint-canvas');
     const ctx = canvas.getContext('2d');
-    const coordinatesDisplay = document.getElementById('coordinates');
+    const coordinatesDisplay = document.querySelector('.coordinates-display');
     const currentToolDisplay = document.getElementById('current-tool');
     const currentColorDisplay = document.getElementById('current-color');
+    const currentStrokeDisplay = document.getElementById('current-stroke');
+    const colorDisplay = document.getElementById('color-display');
     const colorPicker = document.getElementById('color-picker');
-    const lineWidthInput = document.getElementById('line-width');
-    const lineWidthValue = document.getElementById('line-width-value');
-    const algorithmSelect = document.getElementById('algorithm-select');
+    const customColorInput = document.getElementById('custom-color-input');
+    const strokeWidthInput = document.getElementById('stroke-width');
+    const strokeWidthValue = document.querySelector('.stroke-value');
     const clearCanvasBtn = document.getElementById('clear-canvas');
-    const saveBtn = document.getElementById('save-btn');
-    const loadBtn = document.getElementById('load-btn');
+    const saveImageBtn = document.getElementById('save-image');
+    const fullscreenToggleBtn = document.getElementById('fullscreen-toggle');
+    
+    // Pestañas
+    const drawTab = document.getElementById('draw-tab');
+    const shapesTab = document.getElementById('shapes-tab');
+    const drawTools = document.getElementById('draw-tools');
+    const shapesTools = document.getElementById('shapes-tools');
     
     // Herramientas
     const toolButtons = {
-        pencil: document.getElementById('pencil-tool'),
         line: document.getElementById('line-tool'),
-        rectangle: document.getElementById('rectangle-tool'),
         circle: document.getElementById('circle-tool'),
-        polygon: document.getElementById('polygon-tool'),
-        curve: document.getElementById('curve-tool'),
-        eraser: document.getElementById('eraser-tool')
+        bezier: document.getElementById('bezier-tool'),
+        grid: document.getElementById('grid-tool'),
+        rectangle: document.getElementById('rectangle-tool'),
+        triangle: document.getElementById('triangle-tool'),
+        polygon: document.getElementById('polygon-tool')
     };
     
     // Estado de la aplicación
     const state = {
-        currentTool: 'pencil',
-        currentColor: '#000000',
-        backgroundColor: '#ffffff',
+        currentTool: 'line',
+        currentColor: '#FFBF00',
+        backgroundColor: '#1A1A24',
         lineWidth: 2,
         algorithm: 'BASIC',
         isDrawing: false,
@@ -41,12 +49,23 @@ document.addEventListener('DOMContentLoaded', function() {
         shapes: [],
         currentShape: null,
         undoStack: [],
-        redoStack: []
+        redoStack: [],
+        showGrid: true,
+        isFullscreen: false,
+        activeTab: 'draw'
     };
     
+    // Ajustar el tamaño del canvas al tamaño de la ventana
+    function resizeCanvas() {
+        const canvasArea = document.querySelector('.canvas-area');
+        canvas.width = canvasArea.clientWidth;
+        canvas.height = canvasArea.clientHeight;
+        redrawCanvas();
+    }
+    
     // Inicializar el canvas
-    ctx.fillStyle = state.backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
     
     // Funciones de dibujo
     const drawingFunctions = {
@@ -159,6 +178,20 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         },
         
+        // Función para dibujar un triángulo
+        drawTriangle: function(points, color, lineWidth) {
+            if (points.length < 3) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(points[0][0], points[0][1]);
+            ctx.lineTo(points[1][0], points[1][1]);
+            ctx.lineTo(points[2][0], points[2][1]);
+            ctx.lineTo(points[0][0], points[0][1]);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        },
+        
         // Función para dibujar un polígono con líneas básicas
         drawPolygonBasic: function(points, color, lineWidth) {
             if (points.length < 2) return;
@@ -167,6 +200,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.drawLinePygame(
                     points[i][0], points[i][1],
                     points[i + 1][0], points[i + 1][1],
+                    color, lineWidth
+                );
+            }
+            
+            // Cerrar el polígono si tiene más de 2 puntos
+            if (points.length > 2) {
+                this.drawLinePygame(
+                    points[points.length - 1][0], points[points.length - 1][1],
+                    points[0][0], points[0][1],
                     color, lineWidth
                 );
             }
@@ -181,6 +223,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             for (let i = 1; i < points.length; i++) {
                 ctx.lineTo(points[i][0], points[i][1]);
+            }
+            
+            // Cerrar el polígono si tiene más de 2 puntos
+            if (points.length > 2) {
+                ctx.closePath();
             }
             
             ctx.strokeStyle = color;
@@ -204,33 +251,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 this.drawPolygonPygame(curvePoints, color, lineWidth);
             }
-        },
-        
-        // Función para borrar un área
-        eraseArea: function(x1, y1, x2, y2) {
-            const left = Math.min(x1, x2);
-            const top = Math.min(y1, y2);
-            const width = Math.abs(x2 - x1);
-            const height = Math.abs(y2 - y1);
-            
-            ctx.fillStyle = state.backgroundColor;
-            ctx.fillRect(left, top, width, height);
-        },
-        
-        // Función para borrar a mano alzada
-        eraseFreehand: function(points, lineWidth) {
-            if (points.length < 2) return;
-            
-            ctx.beginPath();
-            ctx.moveTo(points[0][0], points[0][1]);
-            
-            for (let i = 1; i < points.length; i++) {
-                ctx.lineTo(points[i][0], points[i][1]);
-            }
-            
-            ctx.strokeStyle = state.backgroundColor;
-            ctx.lineWidth = lineWidth;
-            ctx.stroke();
         }
     };
     
@@ -239,20 +259,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const { type, points, color, lineWidth, algorithm } = shape;
         
         switch (type) {
-            case 'pencil':
-                if (algorithm === 'BASIC') {
-                    for (let i = 0; i < points.length - 1; i++) {
-                        drawingFunctions.drawLineDDA(
-                            points[i][0], points[i][1],
-                            points[i + 1][0], points[i + 1][1],
-                            color, lineWidth
-                        );
-                    }
-                } else {
-                    drawingFunctions.drawPolygonPygame(points, color, lineWidth);
-                }
-                break;
-                
             case 'line':
                 if (points.length >= 2) {
                     const [x1, y1] = points[0];
@@ -293,6 +299,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 break;
                 
+            case 'triangle':
+                if (points.length >= 3) {
+                    drawingFunctions.drawTriangle(points, color, lineWidth);
+                } else if (preview && points.length === 2) {
+                    // Para la vista previa, calcular el tercer punto del triángulo
+                    const [x1, y1] = points[0];
+                    const [x2, y2] = points[1];
+                    const x3 = x1 + (x2 - x1) * 2;
+                    const y3 = y1;
+                    drawingFunctions.drawTriangle([points[0], points[1], [x3, y3]], color, lineWidth);
+                }
+                break;
+                
             case 'polygon':
                 if (algorithm === 'BASIC') {
                     drawingFunctions.drawPolygonBasic(points, color, lineWidth);
@@ -301,25 +320,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 break;
                 
-            case 'curve':
+            case 'bezier':
                 if (points.length >= 3) {
                     drawingFunctions.drawBezierCurve(
                         points[0], points[1], points[2],
                         color, lineWidth
                     );
-                }
-                break;
-                
-            case 'eraser':
-                if (preview) {
-                    // Para la vista previa, solo dibujamos un círculo que sigue al cursor
-                    const [x, y] = points[points.length - 1];
-                    ctx.beginPath();
-                    ctx.arc(x, y, lineWidth / 2, 0, Math.PI * 2);
-                    ctx.fillStyle = state.backgroundColor;
-                    ctx.fill();
-                } else {
-                    drawingFunctions.eraseFreehand(points, lineWidth);
+                } else if (preview && points.length === 2) {
+                    // Para la vista previa, mostrar una línea entre los dos primeros puntos
+                    drawingFunctions.drawLinePygame(
+                        points[0][0], points[0][1],
+                        points[1][0], points[1][1],
+                        color, lineWidth
+                    );
                 }
                 break;
         }
@@ -328,8 +341,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Función para redibujarlo todo
     function redrawCanvas() {
         // Limpiar el canvas
-        ctx.fillStyle = state.backgroundColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
         // Dibujar todas las formas
         for (const shape of state.shapes) {
@@ -340,58 +352,156 @@ document.addEventListener('DOMContentLoaded', function() {
         if (state.isDrawing && state.currentShape) {
             drawShape(state.currentShape, true);
         }
+        
+        // Dibujar puntos de control para formas en progreso
+        if (state.isDrawing && state.currentShape) {
+            state.currentShape.points.forEach(point => {
+                ctx.beginPath();
+                ctx.arc(point[0], point[1], 4, 0, Math.PI * 2);
+                ctx.fillStyle = state.currentColor;
+                ctx.fill();
+            });
+        }
     }
     
     // Función para cambiar la herramienta activa
     function setActiveTool(tool) {
         // Desactivar todos los botones
         Object.values(toolButtons).forEach(button => {
-            button.classList.remove('active');
+            if (button) button.classList.remove('active');
         });
         
         // Activar el botón de la herramienta seleccionada
-        toolButtons[tool].classList.add('active');
+        if (toolButtons[tool]) {
+            toolButtons[tool].classList.add('active');
+        }
         
         // Actualizar el estado
         state.currentTool = tool;
-        currentToolDisplay.textContent = `Herramienta: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`;
+        currentToolDisplay.textContent = `Tool: ${tool.charAt(0).toUpperCase() + tool.slice(1)}`;
+    }
+    
+    // Función para cambiar el color activo
+    function setActiveColor(color) {
+        state.currentColor = color;
+        
+        // Actualizar la visualización del color
+        document.querySelector('.color-preview').style.backgroundColor = color;
+        document.querySelector('.color-value').textContent = color;
+        customColorInput.value = color;
+        
+        // Actualizar el estado
+        currentColorDisplay.textContent = `Color: ${color}`;
+        
+        // Actualizar la selección visual
+        document.querySelectorAll('.color-swatch').forEach(swatch => {
+            swatch.classList.remove('selected');
+            if (swatch.getAttribute('data-color') === color) {
+                swatch.classList.add('selected');
+            }
+        });
+    }
+    
+    // Función para cambiar el grosor de línea
+    function setStrokeWidth(width) {
+        state.lineWidth = width;
+        strokeWidthValue.textContent = `${width}px`;
+        currentStrokeDisplay.textContent = `Stroke: ${width}px`;
+    }
+    
+    // Función para cambiar la pestaña activa
+    function setActiveTab(tab) {
+        state.activeTab = tab;
+        
+        // Actualizar las clases de las pestañas
+        drawTab.classList.toggle('active', tab === 'draw');
+        shapesTab.classList.toggle('active', tab === 'shapes');
+        
+        // Mostrar/ocultar las herramientas correspondientes
+        drawTools.style.display = tab === 'draw' ? 'grid' : 'none';
+        shapesTools.style.display = tab === 'shapes' ? 'grid' : 'none';
+    }
+    
+    // Función para alternar el modo de pantalla completa
+    function toggleFullscreen() {
+        const appContainer = document.querySelector('.app-container');
+        
+        if (!state.isFullscreen) {
+            if (appContainer.requestFullscreen) {
+                appContainer.requestFullscreen();
+            } else if (appContainer.mozRequestFullScreen) {
+                appContainer.mozRequestFullScreen();
+            } else if (appContainer.webkitRequestFullscreen) {
+                appContainer.webkitRequestFullscreen();
+            } else if (appContainer.msRequestFullscreen) {
+                appContainer.msRequestFullscreen();
+            }
+            fullscreenToggleBtn.innerHTML = '<i class="fas fa-compress"></i>';
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            fullscreenToggleBtn.innerHTML = '<i class="fas fa-expand"></i>';
+        }
+        
+        state.isFullscreen = !state.isFullscreen;
     }
     
     // Inicializar la herramienta activa
-    setActiveTool('pencil');
+    setActiveTool('line');
+    
+    // Inicializar el color activo
+    setActiveColor('#FFBF00');
+    
+    // Inicializar el grosor de línea
+    setStrokeWidth(2);
+    
+    // Inicializar la pestaña activa
+    setActiveTab('draw');
     
     // Eventos para los botones de herramientas
     Object.entries(toolButtons).forEach(([tool, button]) => {
-        button.addEventListener('click', () => {
-            setActiveTool(tool);
-        });
+        if (button) {
+            button.addEventListener('click', () => {
+                setActiveTool(tool);
+            });
+        }
     });
     
+    // Eventos para las pestañas
+    drawTab.addEventListener('click', () => setActiveTab('draw'));
+    shapesTab.addEventListener('click', () => setActiveTab('shapes'));
+    
     // Evento para el selector de color
-    colorPicker.addEventListener('input', (e) => {
-        state.currentColor = e.target.value;
-        currentColorDisplay.textContent = `Color: ${state.currentColor}`;
+    colorDisplay.addEventListener('click', () => {
+        colorPicker.style.display = colorPicker.style.display === 'grid' ? 'none' : 'grid';
     });
     
     // Eventos para los swatches de colores
     document.querySelectorAll('.color-swatch').forEach(swatch => {
-        swatch.addEventListener('click', () => {
-            const color = swatch.getAttribute('data-color');
-            state.currentColor = color;
-            colorPicker.value = color;
-            currentColorDisplay.textContent = `Color: ${color}`;
-        });
+        if (!swatch.classList.contains('custom')) {
+            swatch.addEventListener('click', () => {
+                const color = swatch.getAttribute('data-color');
+                setActiveColor(color);
+                colorPicker.style.display = 'none';
+            });
+        }
+    });
+    
+    // Evento para el selector de color personalizado
+    customColorInput.addEventListener('input', (e) => {
+        setActiveColor(e.target.value);
     });
     
     // Evento para el control de grosor de línea
-    lineWidthInput.addEventListener('input', (e) => {
-        state.lineWidth = parseInt(e.target.value);
-        lineWidthValue.textContent = `${state.lineWidth}px`;
-    });
-    
-    // Evento para el selector de algoritmo
-    algorithmSelect.addEventListener('change', (e) => {
-        state.algorithm = e.target.value;
+    strokeWidthInput.addEventListener('input', (e) => {
+        setStrokeWidth(parseInt(e.target.value));
     });
     
     // Evento para limpiar el canvas
@@ -405,40 +515,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Evento para guardar la imagen
-    saveBtn.addEventListener('click', () => {
+    saveImageBtn.addEventListener('click', () => {
         const link = document.createElement('a');
-        link.download = 'paint-web.png';
+        link.download = 'pygame-graphing-app.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
     });
     
-    // Evento para cargar una imagen
-    loadBtn.addEventListener('click', () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        // Limpiar el canvas
-                        state.shapes = [];
-                        
-                        // Dibujar la imagen cargada
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-        
-        input.click();
-    });
+    // Evento para alternar el modo de pantalla completa
+    fullscreenToggleBtn.addEventListener('click', toggleFullscreen);
     
     // Eventos del mouse para el canvas
     canvas.addEventListener('mousedown', (e) => {
@@ -457,18 +542,50 @@ document.addEventListener('DOMContentLoaded', function() {
             algorithm: state.algorithm
         };
         
-        // Para el polígono y la curva, necesitamos manejar clics múltiples
-        if (state.currentTool === 'polygon' || state.currentTool === 'curve') {
+        // Para el polígono, necesitamos manejar clics múltiples
+        if (state.currentTool === 'polygon') {
             // Si ya hay una forma en progreso, añadir el punto
             if (state.shapes.length > 0 && 
-                (state.shapes[state.shapes.length - 1].type === state.currentTool) &&
+                (state.shapes[state.shapes.length - 1].type === 'polygon') &&
                 !state.shapes[state.shapes.length - 1].completed) {
                 
                 state.shapes[state.shapes.length - 1].points.push([x, y]);
                 state.currentShape = state.shapes[state.shapes.length - 1];
                 
-                // Para la curva, completarla después de 3 puntos
-                if (state.currentTool === 'curve' && state.currentShape.points.length >= 3) {
+                redrawCanvas();
+                return;
+            }
+        }
+        
+        // Para el triángulo, necesitamos 3 puntos
+        if (state.currentTool === 'triangle') {
+            if (state.shapes.length > 0 && 
+                (state.shapes[state.shapes.length - 1].type === 'triangle') &&
+                state.shapes[state.shapes.length - 1].points.length < 3) {
+                
+                state.shapes[state.shapes.length - 1].points.push([x, y]);
+                state.currentShape = state.shapes[state.shapes.length - 1];
+                
+                if (state.currentShape.points.length >= 3) {
+                    state.currentShape.completed = true;
+                    state.isDrawing = false;
+                }
+                
+                redrawCanvas();
+                return;
+            }
+        }
+        
+        // Para la curva de Bézier, necesitamos 3 puntos
+        if (state.currentTool === 'bezier') {
+            if (state.shapes.length > 0 && 
+                (state.shapes[state.shapes.length - 1].type === 'bezier') &&
+                state.shapes[state.shapes.length - 1].points.length < 3) {
+                
+                state.shapes[state.shapes.length - 1].points.push([x, y]);
+                state.currentShape = state.shapes[state.shapes.length - 1];
+                
+                if (state.currentShape.points.length >= 3) {
                     state.currentShape.completed = true;
                     state.isDrawing = false;
                 }
@@ -488,16 +605,12 @@ document.addEventListener('DOMContentLoaded', function() {
         coordinatesDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
         
         if (state.isDrawing && state.currentShape) {
-            // Para herramientas que necesitan seguimiento continuo
-            if (['pencil', 'eraser'].includes(state.currentTool)) {
+            // Para herramientas que solo necesitan el punto inicial y final
+            if (state.currentShape.points.length > 1 && 
+                !['polygon', 'triangle', 'bezier'].includes(state.currentTool)) {
+                state.currentShape.points[state.currentShape.points.length - 1] = [x, y];
+            } else if (!['polygon', 'triangle', 'bezier'].includes(state.currentTool)) {
                 state.currentShape.points.push([x, y]);
-            } else {
-                // Para herramientas que solo necesitan el punto inicial y final
-                if (state.currentShape.points.length > 1) {
-                    state.currentShape.points[state.currentShape.points.length - 1] = [x, y];
-                } else {
-                    state.currentShape.points.push([x, y]);
-                }
             }
             
             // Redibujar el canvas con la vista previa
@@ -516,13 +629,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Para la curva, necesitamos 3 puntos
-            if (state.currentTool === 'curve') {
+            // Para el triángulo y la curva de Bézier, necesitamos puntos adicionales
+            if (state.currentTool === 'triangle' || state.currentTool === 'bezier') {
                 if (!state.shapes.includes(state.currentShape)) {
                     state.shapes.push(state.currentShape);
                 }
                 
-                if (state.currentShape.points.length < 3) {
+                if ((state.currentTool === 'triangle' && state.currentShape.points.length < 3) ||
+                    (state.currentTool === 'bezier' && state.currentShape.points.length < 3)) {
                     state.isDrawing = false;
                     return;
                 }
@@ -574,6 +688,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        // Guardar con Ctrl+S
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            saveImageBtn.click();
+        }
+        
         // Cancelar dibujo actual con Escape
         if (e.key === 'Escape') {
             if (state.isDrawing) {
@@ -581,6 +701,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 state.currentShape = null;
                 redrawCanvas();
             }
+        }
+        
+        // Limpiar canvas con Delete
+        if (e.key === 'Delete') {
+            clearCanvasBtn.click();
+        }
+        
+        // Atajos de teclado para herramientas
+        switch (e.key.toLowerCase()) {
+            case 'l':
+                setActiveTab('draw');
+                setActiveTool('line');
+                break;
+            case 'c':
+                setActiveTab('draw');
+                setActiveTool('circle');
+                break;
+            case 'b':
+                setActiveTab('draw');
+                setActiveTool('bezier');
+                break;
+            case 'g':
+                setActiveTab('draw');
+                setActiveTool('grid');
+                break;
+            case 's':
+                if (!e.ctrlKey) {
+                    setActiveTab('shapes');
+                    setActiveTool('rectangle');
+                }
+                break;
+            case 't':
+                setActiveTab('shapes');
+                setActiveTool('triangle');
+                break;
+            case 'p':
+                setActiveTab('shapes');
+                setActiveTool('polygon');
+                break;
+        }
+    });
+    
+    // Ocultar el selector de color al hacer clic fuera de él
+    document.addEventListener('click', (e) => {
+        if (!colorDisplay.contains(e.target) && !colorPicker.contains(e.target)) {
+            colorPicker.style.display = 'none';
         }
     });
 });

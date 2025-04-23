@@ -7,156 +7,376 @@
 
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #f0f0f0;
-    color: #333;
-    line-height: 1.6;
-}
-
-/* Encabezado */
-header {
-    background-color: #2c3e50;
+    background-color: #1E1E1E;
     color: white;
-    padding: 1rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    line-height: 1.6;
+    height: 100vh;
+    overflow: hidden;
 }
 
-header h1 {
-    text-align: center;
-    margin-bottom: 1rem;
-}
-
-/* Barra de herramientas */
-.toolbar {
+/* Contenedor principal */
+.app-container {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 0.5rem;
-    background-color: #34495e;
-    border-radius: 5px;
+    flex-direction: column;
+    height: 100vh;
 }
 
-.tool-group, .color-group, .line-width-group, .algorithm-group, .action-group {
+.main-content {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Panel de herramientas (20% de ancho) */
+.tools-panel {
+    width: 20%;
+    background-color: #252525;
+    border-right: 1px solid #333333;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* Pestañas de categorías */
+.tab-buttons {
+    display: flex;
+    border-bottom: 1px solid #333333;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px 0;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: #999;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    background-color: #333333;
+    color: #FFBF00;
+}
+
+.tab-btn:hover:not(.active) {
+    background-color: #2A2A2A;
+}
+
+/* Secciones del panel */
+.panel-section {
+    padding: 16px;
+    border-bottom: 1px solid #333333;
+}
+
+.section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #999;
+    margin-bottom: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* Grid de herramientas */
+.tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
 }
 
 .tool-btn {
-    width: 40px;
-    height: 40px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: #333333;
     border: none;
-    background-color: #3498db;
-    color: white;
-    border-radius: 5px;
+    color: #ccc;
     cursor: pointer;
-    transition: background-color 0.3s;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s;
 }
 
 .tool-btn:hover {
-    background-color: #2980b9;
+    background-color: #444444;
 }
 
 .tool-btn.active {
-    background-color: #e74c3c;
+    background-color: rgba(255, 191, 0, 0.2);
+    border: 1px solid #FFBF00;
+    color: #FFBF00;
+}
+
+/* Herramientas específicas con colores diferentes cuando están activas */
+#circle-tool.active {
+    background-color: rgba(204, 85, 0, 0.2);
+    border: 1px solid #CC5500;
+    color: #CC5500;
+}
+
+#bezier-tool.active {
+    background-color: rgba(156, 39, 176, 0.2);
+    border: 1px solid #9C27B0;
+    color: #9C27B0;
+}
+
+#grid-tool.active {
+    background-color: rgba(33, 150, 243, 0.2);
+    border: 1px solid #2196F3;
+    color: #2196F3;
+}
+
+#rectangle-tool.active {
+    background-color: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4CAF50;
+    color: #4CAF50;
+}
+
+#triangle-tool.active {
+    background-color: rgba(33, 150, 243, 0.2);
+    border: 1px solid #2196F3;
+    color: #2196F3;
+}
+
+#polygon-tool.active {
+    background-color: rgba(244, 67, 54, 0.2);
+    border: 1px solid #F44336;
+    color: #F44336;
+}
+
+/* Selector de color */
+.color-display {
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid #333333;
+    background-color: #333333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.color-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.color-value {
+    flex: 1;
+    font-size: 14px;
 }
 
 .color-picker {
-    width: 40px;
-    height: 40px;
-    border: none;
-    cursor: pointer;
-}
-
-.color-palette {
-    display: flex;
-    gap: 5px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px;
+    background-color: #333333;
+    border-radius: 8px;
+    margin-top: 8px;
 }
 
 .color-swatch {
-    width: 25px;
-    height: 25px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     cursor: pointer;
-    border: 2px solid #fff;
     transition: transform 0.2s;
+    border: 2px solid transparent;
 }
 
 .color-swatch:hover {
-    transform: scale(1.2);
+    transform: scale(1.1);
 }
 
-.line-width-group label, .algorithm-group label {
-    color: white;
+.color-swatch.selected {
+    border: 2px solid white;
+}
+
+.color-swatch.custom {
+    position: relative;
+    overflow: hidden;
+}
+
+.color-swatch.custom input[type="color"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 150%;
+    height: 150%;
+    transform: translate(-25%, -25%);
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Control de grosor de línea */
+.stroke-width-control {
+    margin-top: 12px;
+}
+
+.stroke-slider {
+    width: 100%;
+    height: 4px;
+    background: #444;
+    border-radius: 2px;
+    appearance: none;
+    outline: none;
+}
+
+.stroke-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+}
+
+.stroke-value {
+    text-align: right;
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+}
+
+/* Botones de acción */
+.actions-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .action-btn {
-    padding: 0.5rem 1rem;
-    background-color: #2ecc71;
-    color: white;
+    padding: 10px;
+    border-radius: 8px;
+    background-color: #333333;
     border: none;
-    border-radius: 5px;
+    color: white;
     cursor: pointer;
-    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
 }
 
 .action-btn:hover {
-    background-color: #27ae60;
+    background-color: #444444;
 }
 
-/* Contenedor del canvas */
-main {
-    padding: 1rem;
+.action-btn i {
+    font-size: 14px;
 }
 
-.canvas-container {
-    display: flex;
-    justify-content: center;
-    margin: 1rem 0;
+/* Área del canvas (80% de ancho) */
+.canvas-area {
+    width: 80%;
+    position: relative;
+    background-color: #1A1A24;
+    overflow: hidden;
 }
 
+/* Fondo de cuadrícula */
+.grid-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: 40px 40px;
+    background-image:
+        linear-gradient(to right, #2A2A2A 1px, transparent 1px),
+        linear-gradient(to bottom, #2A2A2A 1px, transparent 1px);
+    z-index: 0;
+}
+
+/* Canvas para dibujo */
 #paint-canvas {
-    background-color: white;
-    border: 1px solid #ddd;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
     cursor: crosshair;
+}
+
+/* Visualización de coordenadas */
+.coordinates-display {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background-color: rgba(51, 51, 51, 0.7);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    z-index: 2;
+}
+
+/* Botón de pantalla completa */
+.fullscreen-btn {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background-color: rgba(51, 51, 51, 0.7);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+    transition: background-color 0.2s;
+}
+
+.fullscreen-btn:hover {
+    background-color: rgba(51, 51, 51, 1);
 }
 
 /* Barra de estado */
 .status-bar {
+    height: 32px;
+    background-color: #252525;
+    border-top: 1px solid #333333;
     display: flex;
-    justify-content: space-between;
-    background-color: #ecf0f1;
-    padding: 0.5rem;
-    border-radius: 5px;
-    font-size: 0.9rem;
-    color: #7f8c8d;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 12px;
+    color: #999;
 }
 
-/* Pie de página */
-footer {
-    text-align: center;
-    padding: 1rem;
-    background-color: #2c3e50;
-    color: white;
-    margin-top: 2rem;
+.status-info {
+    display: flex;
+    gap: 16px;
+}
+
+.status-message {
+    margin-left: auto;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-    .toolbar {
+    .main-content {
         flex-direction: column;
     }
     
-    .tool-group, .color-group, .line-width-group, .algorithm-group, .action-group {
+    .tools-panel {
         width: 100%;
-        justify-content: center;
+        height: 200px;
+        border-right: none;
+        border-bottom: 1px solid #333333;
     }
     
-    #paint-canvas {
+    .canvas-area {
         width: 100%;
-        height: auto;
+        height: calc(100vh - 232px);
     }
 }

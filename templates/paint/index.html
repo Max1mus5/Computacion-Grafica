@@ -3,93 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paint Web - Computación Gráfica</title>
+    <title>Pygame Graphing App - Computación Gráfica</title>
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/paint.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
-    <header>
-        <h1>Paint Web</h1>
-        <div class="toolbar">
-            <div class="tool-group">
-                <button id="pencil-tool" class="tool-btn active" title="Lápiz">
-                    <i class="fas fa-pencil-alt"></i>
-                </button>
-                <button id="line-tool" class="tool-btn" title="Línea">
-                    <i class="fas fa-slash"></i>
-                </button>
-                <button id="rectangle-tool" class="tool-btn" title="Rectángulo">
-                    <i class="far fa-square"></i>
-                </button>
-                <button id="circle-tool" class="tool-btn" title="Círculo">
-                    <i class="far fa-circle"></i>
-                </button>
-                <button id="polygon-tool" class="tool-btn" title="Polígono">
-                    <i class="fas fa-draw-polygon"></i>
-                </button>
-                <button id="curve-tool" class="tool-btn" title="Curva Bézier">
-                    <i class="fas fa-bezier-curve"></i>
-                </button>
-                <button id="eraser-tool" class="tool-btn" title="Borrador">
-                    <i class="fas fa-eraser"></i>
-                </button>
-                <button id="clear-canvas" class="tool-btn" title="Limpiar lienzo">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
-            <div class="color-group">
-                <input type="color" id="color-picker" value="#000000">
-                <div class="color-palette">
-                    <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
-                    <div class="color-swatch" style="background-color: #ff0000;" data-color="#ff0000"></div>
-                    <div class="color-swatch" style="background-color: #00ff00;" data-color="#00ff00"></div>
-                    <div class="color-swatch" style="background-color: #0000ff;" data-color="#0000ff"></div>
-                    <div class="color-swatch" style="background-color: #ffff00;" data-color="#ffff00"></div>
-                    <div class="color-swatch" style="background-color: #ff00ff;" data-color="#ff00ff"></div>
-                    <div class="color-swatch" style="background-color: #00ffff;" data-color="#00ffff"></div>
-                    <div class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff"></div>
+    <div class="app-container">
+        <div class="main-content">
+            <!-- Tools Panel (20% width) -->
+            <div class="tools-panel">
+                <!-- Tool Categories -->
+                <div class="tab-buttons">
+                    <button id="draw-tab" class="tab-btn active">Draw</button>
+                    <button id="shapes-tab" class="tab-btn">Shapes</button>
+                </div>
+
+                <!-- Tools Section -->
+                <div class="panel-section">
+                    <h3 class="section-title">TOOLS</h3>
+                    
+                    <!-- Drawing Tools -->
+                    <div id="draw-tools" class="tools-grid">
+                        <button id="line-tool" class="tool-btn active" title="DDA/Bresenham Line (L)">
+                            <i class="fas fa-pen"></i>
+                        </button>
+                        <button id="circle-tool" class="tool-btn" title="Circle (C)">
+                            <i class="far fa-circle"></i>
+                        </button>
+                        <button id="bezier-tool" class="tool-btn" title="Bézier Curve (B)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 3C7 10 17 10 21 3"></path>
+                                <path d="M3 21C7 14 17 14 21 21"></path>
+                            </svg>
+                        </button>
+                        <button id="grid-tool" class="tool-btn" title="Toggle Grid (G)">
+                            <i class="fas fa-th"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Shapes Tools (hidden by default) -->
+                    <div id="shapes-tools" class="tools-grid" style="display: none;">
+                        <button id="rectangle-tool" class="tool-btn" title="Square/Rectangle (S)">
+                            <i class="far fa-square"></i>
+                        </button>
+                        <button id="triangle-tool" class="tool-btn" title="Triangle (T)">
+                            <i class="fas fa-play" style="transform: rotate(90deg);"></i>
+                        </button>
+                        <button id="polygon-tool" class="tool-btn" title="Polygon (P)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L4 7l1.5 10.5L12 22l6.5-4.5L20 7l-8-5z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Color Picker -->
+                <div class="panel-section">
+                    <h3 class="section-title">COLOR</h3>
+                    <div id="color-display" class="color-display">
+                        <div class="color-preview" style="background-color: #FFBF00;"></div>
+                        <span class="color-value">#FFBF00</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    
+                    <div id="color-picker" class="color-picker">
+                        <div class="color-swatch" style="background-color: #FFBF00;" data-color="#FFBF00"></div>
+                        <div class="color-swatch" style="background-color: #CC5500;" data-color="#CC5500"></div>
+                        <div class="color-swatch" style="background-color: #9C27B0;" data-color="#9C27B0"></div>
+                        <div class="color-swatch" style="background-color: #4CAF50;" data-color="#4CAF50"></div>
+                        <div class="color-swatch" style="background-color: #2196F3;" data-color="#2196F3"></div>
+                        <div class="color-swatch" style="background-color: #F44336;" data-color="#F44336"></div>
+                        <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
+                        <div class="color-swatch custom" style="background: linear-gradient(135deg, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00);" title="Custom Color">
+                            <input type="color" id="custom-color-input" value="#FFBF00">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stroke Width -->
+                <div class="panel-section">
+                    <h3 class="section-title">STROKE WIDTH</h3>
+                    <div class="stroke-width-control">
+                        <input type="range" id="stroke-width" min="1" max="10" value="2" class="stroke-slider">
+                        <div class="stroke-value">2px</div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="panel-section">
+                    <h3 class="section-title">ACTIONS</h3>
+                    <div class="actions-buttons">
+                        <button id="clear-canvas" class="action-btn" title="Clear all drawings (Del)">
+                            <i class="fas fa-trash-alt"></i>
+                            <span>Clear Canvas</span>
+                        </button>
+                        <button id="save-image" class="action-btn" title="Save as PNG (Ctrl+S)">
+                            <i class="fas fa-save"></i>
+                            <span>Save Image</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="line-width-group">
-                <label for="line-width">Grosor:</label>
-                <input type="range" id="line-width" min="1" max="20" value="2">
-                <span id="line-width-value">2px</span>
-            </div>
-            <div class="algorithm-group">
-                <label for="algorithm-select">Algoritmo:</label>
-                <select id="algorithm-select">
-                    <option value="BASIC">Básico</option>
-                    <option value="PYGAME">PyGame</option>
-                </select>
-            </div>
-            <div class="action-group">
-                <button id="save-btn" class="action-btn" title="Guardar imagen">
-                    <i class="fas fa-save"></i> Guardar
-                </button>
-                <button id="load-btn" class="action-btn" title="Cargar imagen">
-                    <i class="fas fa-upload"></i> Cargar
-                </button>
-            </div>
-        </div>
-    </header>
-    
-    <main>
-        <div class="canvas-container">
-            <canvas id="paint-canvas" width="800" height="600"></canvas>
-        </div>
-        <div class="status-bar">
-            <span id="coordinates">X: 0, Y: 0</span>
-            <span id="current-tool">Herramienta: Lápiz</span>
-            <span id="current-color">Color: #000000</span>
-        </div>
-    </main>
-    
-    <footer>
-        <p>Desarrollado para la clase de Computación Gráfica</p>
-    </footer>
 
-    <!-- Font Awesome para los iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+            <!-- Canvas Area (80% width) -->
+            <div class="canvas-area">
+                <!-- Grid background -->
+                <div class="grid-background"></div>
+                
+                <!-- Canvas for drawing -->
+                <canvas id="paint-canvas" width="800" height="600"></canvas>
+                
+                <!-- Coordinates display -->
+                <div class="coordinates-display">X: 300, Y: 200</div>
+                
+                <!-- Fullscreen toggle -->
+                <button id="fullscreen-toggle" class="fullscreen-btn" title="Toggle Fullscreen">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-info">
+                <span id="current-tool">Tool: Line</span>
+                <span id="current-color">Color: #FFBF00</span>
+                <span id="current-stroke">Stroke: 2px</span>
+            </div>
+            <div class="status-message">Ready</div>
+        </div>
+    </div>
+
     <!-- Script principal -->
     <script src="{% static 'js/paint.js' %}"></script>
 </body>
