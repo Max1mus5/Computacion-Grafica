@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
         line: document.getElementById('line-tool'),
         circle: document.getElementById('circle-tool'),
         bezier: document.getElementById('bezier-tool'),
+        'bezier-closed': document.getElementById('bezier-closed-tool'),
         grid: document.getElementById('grid-tool'),
         rectangle: document.getElementById('rectangle-tool'),
         triangle: document.getElementById('triangle-tool'),
@@ -329,6 +330,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         },
         
+        // Función para dibujar una curva abierta con líneas básicas (sin cerrar)
+        drawCurveBasic: function(points, color, lineWidth) {
+            if (points.length < 2) return;
+            
+            for (let i = 0; i < points.length - 1; i++) {
+                this.drawLineBresenham(
+                    points[i][0], points[i][1],
+                    points[i + 1][0], points[i + 1][1],
+                    color, lineWidth
+                );
+            }
+            // No cerramos la curva, dejándola abierta
+        },
+        
         // Función para dibujar un polígono con la API de Canvas
         drawPolygonPygame: function(points, color, lineWidth) {
             if (points.length < 2) return;
@@ -350,8 +365,26 @@ document.addEventListener('DOMContentLoaded', function() {
             ctx.stroke();
         },
         
+        // Función para dibujar una curva abierta con la API de Canvas (sin cerrar)
+        drawCurvePygame: function(points, color, lineWidth) {
+            if (points.length < 2) return;
+            
+            ctx.beginPath();
+            ctx.moveTo(points[0][0], points[0][1]);
+            
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i][0], points[i][1]);
+            }
+            
+            // No cerramos la curva, dejándola abierta
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        },
+        
         // Función para dibujar una curva de Bézier cúbica (4 puntos de control)
-        drawBezierCurve: function(points, color, lineWidth, steps = 100) {
+        drawBezierCurve: function(points, color, lineWidth, steps = 100, closeCurve = false) {
             if (points.length < 4) return;
             
             const p0 = points[0];
@@ -376,10 +409,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 curvePoints.push([Math.round(x), Math.round(y)]);
             }
             
-            if (state.algorithm === 'BASIC') {
-                this.drawPolygonBasic(curvePoints, color, lineWidth);
+            if (closeCurve) {
+                // Si se quiere cerrar la curva, usar las funciones de polígono
+                if (state.algorithm === 'BASIC') {
+                    this.drawPolygonBasic(curvePoints, color, lineWidth);
+                } else {
+                    this.drawPolygonPygame(curvePoints, color, lineWidth);
+                }
             } else {
-                this.drawPolygonPygame(curvePoints, color, lineWidth);
+                // Si no se quiere cerrar la curva, usar las funciones de curva abierta
+                if (state.algorithm === 'BASIC') {
+                    this.drawCurveBasic(curvePoints, color, lineWidth);
+                } else {
+                    this.drawCurvePygame(curvePoints, color, lineWidth);
+                }
             }
         },
         
@@ -498,7 +541,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 
             case 'bezier':
                 if (points.length >= 4) {
-                    drawingFunctions.drawBezierCurve(points, color, lineWidth);
+                    // Por defecto, no cerramos la curva (curva abierta)
+                    drawingFunctions.drawBezierCurve(points, color, lineWidth, 100, false);
+                } else if (preview) {
+                    // Para la vista previa, mostrar los puntos de control
+                    for (let i = 0; i < points.length - 1; i++) {
+                        drawingFunctions.drawLinePygame(
+                            points[i][0], points[i][1],
+                            points[i+1][0], points[i+1][1],
+                            color, 1
+                        );
+                    }
+                }
+                break;
+                
+            case 'bezier-closed':
+                if (points.length >= 4) {
+                    // Curva cerrada (conecta el punto final con el inicial)
+                    drawingFunctions.drawBezierCurve(points, color, lineWidth, 100, true);
                 } else if (preview) {
                     // Para la vista previa, mostrar los puntos de control
                     for (let i = 0; i < points.length - 1; i++) {
@@ -560,7 +620,8 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'freehand': toolName = 'Trazo Libre'; break;
             case 'line': toolName = 'Línea'; break;
             case 'circle': toolName = 'Círculo'; break;
-            case 'bezier': toolName = 'Curva Bézier'; break;
+            case 'bezier': toolName = 'Curva Bézier Abierta'; break;
+            case 'bezier-closed': toolName = 'Curva Bézier Cerrada'; break;
             case 'grid': toolName = 'Cuadrícula'; break;
             case 'rectangle': toolName = 'Rectángulo'; break;
             case 'triangle': toolName = 'Triángulo'; break;
@@ -777,9 +838,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Para la curva de Bézier, necesitamos 4 puntos
-        if (state.currentTool === 'bezier') {
+        if (state.currentTool === 'bezier' || state.currentTool === 'bezier-closed') {
             if (state.shapes.length > 0 &&
-                (state.shapes[state.shapes.length - 1].type === 'bezier') &&
+                (state.shapes[state.shapes.length - 1].type === state.currentTool) &&
                 state.shapes[state.shapes.length - 1].points.length < 4) {
                 
                 state.shapes[state.shapes.length - 1].points.push([x, y]);
@@ -943,6 +1004,10 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'b':
                 setActiveTab('draw');
                 setActiveTool('bezier');
+                break;
+            case 'z':
+                setActiveTab('draw');
+                setActiveTool('bezier-closed');
                 break;
             case 'g':
                 setActiveTab('draw');
