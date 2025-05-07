@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentación - Graficador Pygame</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/documentation.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+    <div class="documentation-container">
+        <header class="documentation-header">
+            <h1 class="documentation-title">Documentación del Graficador Pygame</h1>
+            <a href="{% url 'paint:paint' %}" class="back-to-app">
+                <i class="fas fa-arrow-left"></i>
+                Volver al Graficador
+            </a>
+        </header>
+
+        <div class="documentation-content">
+            <nav class="documentation-nav">
+                <h2 class="nav-title">Contenido</h2>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="#introduccion" class="nav-link">Introducción</a></li>
+                    <li class="nav-item"><a href="#algoritmos" class="nav-link">Algoritmos Implementados</a></li>
+                    <li class="nav-item"><a href="#dibujo-django" class="nav-link">Dibujo en Django con Pygame</a></li>
+                    <li class="nav-item"><a href="#rendimiento" class="nav-link">Problemas de Rendimiento</a></li>
+                    <li class="nav-item"><a href="#poligonos" class="nav-link">Funcionamiento de Polígonos</a></li>
+                    <li class="nav-item"><a href="#paleta-colores" class="nav-link">Paleta de Colores</a></li>
+                    <li class="nav-item"><a href="#atajos-teclado" class="nav-link">Atajos de Teclado</a></li>
+                </ul>
+            </nav>
+
+            <main class="documentation-main">
+                <section id="introduccion" class="section">
+                    <h2 class="section-title">Introducción</h2>
+                    <p>
+                        El Graficador Pygame es una aplicación web desarrollada con Django que permite dibujar formas geométricas utilizando algoritmos matemáticos propios en lugar de las funciones incorporadas de Pygame. Esta aplicación fue desarrollada como parte del curso de Computación Gráfica.
+                    </p>
+                    <p>
+                        La aplicación utiliza una biblioteca personalizada llamada <code>PygameDrawLibrary.py</code> que implementa varios algoritmos de dibujo, como el algoritmo de Bresenham para líneas y círculos, y algoritmos para dibujar rectángulos, polígonos y curvas de Bézier.
+                    </p>
+                </section>
+
+                <section id="algoritmos" class="section">
+                    <h2 class="section-title">Algoritmos Implementados</h2>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Algoritmo de Bresenham para Líneas</h3>
+                        <p>
+                            El algoritmo de Bresenham para líneas es un algoritmo de dibujo de líneas que determina qué puntos en una matriz bidimensional deben ser trazados para formar una línea recta entre dos puntos dados. Este algoritmo es eficiente porque utiliza solo operaciones enteras (sumas, restas y multiplicaciones por 2).
+                        </p>
+                        <div class="algorithm-example">
+                            <pre><code>def draw(self, surface, shape_data, canvas_rect=None):
+    """
+    Dibuja una línea utilizando el algoritmo de Bresenham.
+    
+    Args:
+        surface (pygame.Surface): Superficie donde se dibujará.
+        shape_data (dict): Datos de la línea a dibujar.
+        canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
+    """
+    start_pos = shape_data.get('start_pos', (0, 0))
+    end_pos = shape_data.get('end_pos', (0, 0))
+    color = shape_data.get('color', (255, 255, 255))
+    width = shape_data.get('width', 1)
+    
+    x0, y0 = start_pos
+    x1, y1 = end_pos
+    
+    # Si el ancho es mayor que 1, dibujamos múltiples líneas
+    if width > 1:
+        for offset in range(-(width//2), width//2 + 1):
+            # Para líneas más verticales, desplazamos en x
+            if abs(y1 - y0) > abs(x1 - x0):
+                self._bresenham_line(surface, (x0 + offset, y0), (x1 + offset, y1), color)
+            # Para líneas más horizontales, desplazamos en y
+            else:
+                self._bresenham_line(surface, (x0, y0 + offset), (x1, y1 + offset), color)
+    else:
+        self._bresenham_line(surface, start_pos, end_pos, color)</code></pre>
+                        </div>
+                        <p>
+                            El algoritmo maneja todos los casos de pendiente (positiva, negativa, vertical, horizontal) y utiliza la simetría para optimizar el cálculo de los puntos.
+                        </p>
+                    </div>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Algoritmo de Bresenham para Círculos</h3>
+                        <p>
+                            El algoritmo de Bresenham para círculos es una variante del algoritmo de Bresenham que dibuja un círculo utilizando solo operaciones enteras. Este algoritmo aprovecha la simetría de los círculos para dibujar 8 puntos a la vez.
+                        </p>
+                        <div class="algorithm-example">
+                            <pre><code>def _bresenham_circle(self, surface, center, radius, color):
+    """
+    Implementación del algoritmo de Bresenham para círculos.
+    
+    Args:
+        surface (pygame.Surface): Superficie donde se dibujará.
+        center (tuple): Coordenadas del centro del círculo (x, y).
+        radius (int): Radio del círculo.
+        color (tuple): Color del círculo en formato RGB.
+    """
+    x, y = 0, radius
+    d = 3 - 2 * radius
+    
+    # Función para dibujar 8 puntos simétricos
+    def draw_circle_points(cx, cy, x, y, color):
+        surface.set_at((cx + x, cy + y), color)
+        surface.set_at((cx - x, cy + y), color)
+        surface.set_at((cx + x, cy - y), color)
+        surface.set_at((cx - x, cy - y), color)
+        surface.set_at((cx + y, cy + x), color)
+        surface.set_at((cx - y, cy + x), color)
+        surface.set_at((cx + y, cy - x), color)
+        surface.set_at((cx - y, cy - x), color)
+    
+    # Dibujamos los primeros puntos
+    draw_circle_points(center[0], center[1], x, y, color)
+    
+    while y >= x:
+        x += 1
+        
+        # Actualizar el valor de decisión
+        if d > 0:
+            y -= 1
+            d = d + 4 * (x - y) + 10
+        else:
+            d = d + 4 * x + 6
+        
+        # Dibujar los 8 puntos simétricos
+        draw_circle_points(center[0], center[1], x, y, color)</code></pre>
+                        </div>
+                        <p>
+                            Este algoritmo es más eficiente que el algoritmo de punto medio para círculos y produce círculos más precisos.
+                        </p>
+                    </div>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Algoritmo para Rectángulos</h3>
+                        <p>
+                            El algoritmo para rectángulos utiliza el algoritmo de Bresenham para líneas para dibujar los cuatro lados del rectángulo.
+                        </p>
+                        <div class="algorithm-example">
+                            <pre><code>def draw(self, surface, shape_data, canvas_rect=None):
+    """
+    Dibuja un rectángulo utilizando el algoritmo de Bresenham para líneas.
+    
+    Args:
+        surface (pygame.Surface): Superficie donde se dibujará.
+        shape_data (dict): Datos del rectángulo a dibujar.
+        canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
+    """
+    start_pos = shape_data.get('start_pos', (0, 0))
+    end_pos = shape_data.get('end_pos', (0, 0))
+    color = shape_data.get('color', (255, 255, 255))
+    width = shape_data.get('width', 1)
+    
+    # Calculamos las coordenadas de las esquinas
+    x0, y0 = start_pos
+    x1, y1 = end_pos
+    
+    # Aseguramos que x0,y0 sea la esquina superior izquierda
+    if x0 > x1:
+        x0, x1 = x1, x0
+    if y0 > y1:
+        y0, y1 = y1, y0
+    
+    # Creamos un objeto LineAlgorithm para dibujar las líneas
+    line_algorithm = BresenhamLineAlgorithm()
+    
+    # Dibujamos las cuatro líneas del rectángulo
+    # Línea superior
+    line_algorithm.draw(surface, {'start_pos': (x0, y0), 'end_pos': (x1, y0), 'color': color, 'width': width})
+    # Línea derecha
+    line_algorithm.draw(surface, {'start_pos': (x1, y0), 'end_pos': (x1, y1), 'color': color, 'width': width})
+    # Línea inferior
+    line_algorithm.draw(surface, {'start_pos': (x1, y1), 'end_pos': (x0, y1), 'color': color, 'width': width})
+    # Línea izquierda
+    line_algorithm.draw(surface, {'start_pos': (x0, y1), 'end_pos': (x0, y0), 'color': color, 'width': width})</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Algoritmo para Polígonos</h3>
+                        <p>
+                            El algoritmo para polígonos utiliza el algoritmo de Bresenham para líneas para dibujar cada lado del polígono, conectando cada punto con el siguiente y cerrando el polígono conectando el último punto con el primero.
+                        </p>
+                        <div class="algorithm-example">
+                            <pre><code>def draw(self, surface, shape_data, canvas_rect=None):
+    """
+    Dibuja un polígono utilizando el algoritmo de Bresenham para líneas.
+    
+    Args:
+        surface (pygame.Surface): Superficie donde se dibujará.
+        shape_data (dict): Datos del polígono a dibujar.
+        canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
+    """
+    points = shape_data.get('points', [])
+    color = shape_data.get('color', (255, 255, 255))
+    width = shape_data.get('width', 1)
+    
+    if len(points) < 2:
+        return
+    
+    # Creamos un objeto LineAlgorithm para dibujar las líneas
+    line_algorithm = BresenhamLineAlgorithm()
+    
+    # Dibujamos cada lado del polígono
+    for i in range(len(points) - 1):
+        line_algorithm.draw(surface, {
+            'start_pos': points[i],
+            'end_pos': points[i + 1],
+            'color': color,
+            'width': width
+        })
+    
+    # Cerramos el polígono conectando el último punto con el primero
+    if len(points) > 2:
+        line_algorithm.draw(surface, {
+            'start_pos': points[-1],
+            'end_pos': points[0],
+            'color': color,
+            'width': width
+        })</code></pre>
+                        </div>
+                    </div>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Algoritmo para Curvas de Bézier</h3>
+                        <p>
+                            El algoritmo para curvas de Bézier calcula los puntos de la curva utilizando la fórmula de Bézier y luego utiliza el algoritmo de Bresenham para líneas para dibujar segmentos entre los puntos calculados.
+                        </p>
+                        <div class="algorithm-example">
+                            <pre><code>def draw(self, surface, shape_data, canvas_rect=None):
+    """
+    Dibuja una curva de Bézier utilizando el algoritmo de Bresenham para líneas.
+    
+    Args:
+        surface (pygame.Surface): Superficie donde se dibujará.
+        shape_data (dict): Datos de la curva a dibujar.
+        canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
+    """
+    control_points = shape_data.get('control_points', [])
+    color = shape_data.get('color', (255, 255, 255))
+    width = shape_data.get('width', 1)
+    steps = shape_data.get('steps', 50)  # Número de segmentos para aproximar la curva
+    
+    if len(control_points) < 2:
+        return
+    
+    # Calculamos los puntos de la curva
+    curve_points = []
+    for i in range(steps + 1):
+        t = i / steps
+        point = self._calculate_bezier_point(t, control_points)
+        curve_points.append(point)
+    
+    # Creamos un objeto LineAlgorithm para dibujar las líneas
+    line_algorithm = BresenhamLineAlgorithm()
+    
+    # Dibujamos segmentos entre los puntos calculados
+    for i in range(len(curve_points) - 1):
+        line_algorithm.draw(surface, {
+            'start_pos': curve_points[i],
+            'end_pos': curve_points[i + 1],
+            'color': color,
+            'width': width
+        })</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="dibujo-django" class="section">
+                    <h2 class="section-title">Dibujo en Django con Pygame</h2>
+                    <p>
+                        Para dibujar en una aplicación web Django utilizando Pygame, se sigue el siguiente proceso:
+                    </p>
+                    <ol>
+                        <li>
+                            <strong>Creación de una superficie Pygame en el servidor:</strong> Cuando el usuario realiza una acción de dibujo en el navegador, se envía una solicitud AJAX al servidor Django.
+                        </li>
+                        <li>
+                            <strong>Procesamiento en el servidor:</strong> El servidor crea una superficie Pygame y utiliza los algoritmos implementados en <code>PygameDrawLibrary.py</code> para dibujar la forma solicitada.
+                        </li>
+                        <li>
+                            <strong>Conversión a formato web:</strong> La superficie Pygame se convierte a un formato que puede ser enviado al navegador (por ejemplo, una imagen PNG).
+                        </li>
+                        <li>
+                            <strong>Envío al cliente:</strong> La imagen se envía al navegador, donde se muestra en un elemento canvas HTML.
+                        </li>
+                    </ol>
+                    <p>
+                        Sin embargo, en nuestra implementación actual, todo el dibujo se realiza en el lado del cliente utilizando JavaScript y el elemento canvas de HTML5. Los algoritmos de Pygame se han reimplementado en JavaScript para poder ejecutarlos directamente en el navegador, lo que mejora significativamente el rendimiento y la experiencia del usuario.
+                    </p>
+                    <div class="note">
+                        <p>
+                            <strong>Nota:</strong> Aunque los algoritmos se ejecutan en JavaScript, la lógica y los cálculos son los mismos que se utilizarían en Pygame. Esto permite mantener la compatibilidad con la biblioteca <code>PygameDrawLibrary.py</code> y facilita la migración entre la versión web y una versión de escritorio.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="rendimiento" class="section">
+                    <h2 class="section-title">Problemas de Rendimiento</h2>
+                    <p>
+                        La implementación actual presenta algunos problemas de rendimiento, especialmente en la función de dibujo libre. Estos problemas se deben principalmente a la forma en que se añaden los puntos al dibujar.
+                    </p>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Problemas en el Dibujo Libre</h3>
+                        <p>
+                            En la función de dibujo libre, cada vez que el usuario mueve el mouse, se añade un nuevo punto al dibujo. Esto puede generar una gran cantidad de puntos, especialmente si el usuario mueve el mouse rápidamente. Cada punto requiere un cálculo y una actualización del canvas, lo que puede ralentizar la aplicación.
+                        </p>
+                        <p>
+                            El código actual implementa el dibujo libre de la siguiente manera:
+                        </p>
+                        <div class="algorithm-example">
+                            <pre><code>// En el evento mousemove durante el dibujo libre
+if (state.currentTool === 'freehand' && state.isDrawing) {
+    const currentPoint = getCanvasCoordinates(e);
+    
+    // Añadir el punto al array de puntos
+    state.points.push(currentPoint);
+    
+    // Dibujar una línea desde el punto anterior al punto actual
+    ctx.beginPath();
+    ctx.moveTo(state.lastPoint.x, state.lastPoint.y);
+    ctx.lineTo(currentPoint.x, currentPoint.y);
+    ctx.stroke();
+    
+    // Actualizar el último punto
+    state.lastPoint = currentPoint;
+}</code></pre>
+                        </div>
+                        <p>
+                            Este enfoque tiene varios problemas:
+                        </p>
+                        <ol>
+                            <li>
+                                <strong>Acumulación excesiva de puntos:</strong> Se almacenan todos los puntos por los que pasa el mouse, incluso si están muy cerca entre sí.
+                            </li>
+                            <li>
+                                <strong>Redibujado ineficiente:</strong> Cada vez que se añade un punto, se dibuja una nueva línea, lo que puede causar un efecto de "escalera" en líneas diagonales.
+                            </li>
+                            <li>
+                                <strong>Consumo de memoria:</strong> El almacenamiento de todos los puntos puede consumir mucha memoria en dibujos complejos.
+                            </li>
+                        </ol>
+                    </div>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Posibles Soluciones</h3>
+                        <p>
+                            Para mejorar el rendimiento del dibujo libre, se podrían implementar las siguientes soluciones:
+                        </p>
+                        <ol>
+                            <li>
+                                <strong>Muestreo de puntos:</strong> En lugar de almacenar todos los puntos, se podrían almacenar solo los puntos que estén a una distancia mínima entre sí.
+                            </li>
+                            <li>
+                                <strong>Uso de curvas de Bézier:</strong> Se podrían utilizar curvas de Bézier para suavizar el trazo, reduciendo el número de puntos necesarios.
+                            </li>
+                            <li>
+                                <strong>Optimización del redibujado:</strong> En lugar de redibujar todo el canvas cada vez que se añade un punto, se podría dibujar solo la nueva línea.
+                            </li>
+                            <li>
+                                <strong>Uso de Web Workers:</strong> Se podrían utilizar Web Workers para realizar los cálculos en un hilo separado, evitando bloquear la interfaz de usuario.
+                            </li>
+                        </ol>
+                    </div>
+                </section>
+
+                <section id="poligonos" class="section">
+                    <h2 class="section-title">Funcionamiento de Polígonos</h2>
+                    <p>
+                        La función de polígonos permite al usuario dibujar polígonos regulares e irregulares. El polígono se dibuja a partir de un punto central y varios puntos que definen los vértices del polígono.
+                    </p>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Punto Base para Polígonos</h3>
+                        <p>
+                            El punto base para un polígono es el primer punto que el usuario selecciona al comenzar a dibujar el polígono. Este punto se utiliza como referencia para calcular la posición de los demás vértices.
+                        </p>
+                        <p>
+                            En el caso de polígonos regulares (como triángulos equiláteros, cuadrados, pentágonos, etc.), el punto base se utiliza como centro del polígono, y los vértices se calculan a partir de este punto utilizando fórmulas trigonométricas.
+                        </p>
+                        <div class="algorithm-example">
+                            <pre><code>// Cálculo de los vértices de un polígono regular
+function calculateRegularPolygonVertices(centerX, centerY, radius, sides) {
+    const vertices = [];
+    const angleStep = (2 * Math.PI) / sides;
+    
+    for (let i = 0; i < sides; i++) {
+        const angle = i * angleStep;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        vertices.push({ x, y });
+    }
+    
+    return vertices;
+}</code></pre>
+                        </div>
+                        <p>
+                            En el caso de polígonos irregulares, cada clic del usuario añade un nuevo vértice al polígono. El polígono se cierra automáticamente cuando el usuario hace clic cerca del primer vértice o cuando presiona la tecla Enter.
+                        </p>
+                    </div>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Algoritmo de Dibujo de Polígonos</h3>
+                        <p>
+                            El algoritmo de dibujo de polígonos utiliza el algoritmo de Bresenham para líneas para dibujar cada lado del polígono. El polígono se dibuja conectando cada vértice con el siguiente, y el último vértice con el primero para cerrar el polígono.
+                        </p>
+                        <p>
+                            El algoritmo implementado en <code>PygameDrawLibrary.py</code> es el siguiente:
+                        </p>
+                        <div class="algorithm-example">
+                            <pre><code>def draw(self, surface, shape_data, canvas_rect=None):
+    """
+    Dibuja un polígono utilizando el algoritmo de Bresenham para líneas.
+    
+    Args:
+        surface (pygame.Surface): Superficie donde se dibujará.
+        shape_data (dict): Datos del polígono a dibujar.
+        canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
+    """
+    points = shape_data.get('points', [])
+    color = shape_data.get('color', (255, 255, 255))
+    width = shape_data.get('width', 1)
+    
+    if len(points) < 2:
+        return
+    
+    # Creamos un objeto LineAlgorithm para dibujar las líneas
+    line_algorithm = BresenhamLineAlgorithm()
+    
+    # Dibujamos cada lado del polígono
+    for i in range(len(points) - 1):
+        line_algorithm.draw(surface, {
+            'start_pos': points[i],
+            'end_pos': points[i + 1],
+            'color': color,
+            'width': width
+        })
+    
+    # Cerramos el polígono conectando el último punto con el primero
+    if len(points) > 2:
+        line_algorithm.draw(surface, {
+            'start_pos': points[-1],
+            'end_pos': points[0],
+            'color': color,
+            'width': width
+        })</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="paleta-colores" class="section">
+                    <h2 class="section-title">Paleta de Colores</h2>
+                    <p>
+                        La aplicación utiliza una paleta de colores predefinida que incluye los siguientes colores:
+                    </p>
+                    
+                    <div class="color-palette">
+                        <div class="color-item">
+                            <div class="color-box" style="background-color: #FFBF00;"></div>
+                            <span class="color-name">Ámbar</span>
+                            <span class="color-hex">#FFBF00</span>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background-color: #CC5500;"></div>
+                            <span class="color-name">Marrón</span>
+                            <span class="color-hex">#CC5500</span>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background-color: #9C27B0;"></div>
+                            <span class="color-name">Púrpura</span>
+                            <span class="color-hex">#9C27B0</span>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background-color: #4CAF50;"></div>
+                            <span class="color-name">Verde</span>
+                            <span class="color-hex">#4CAF50</span>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background-color: #2196F3;"></div>
+                            <span class="color-name">Azul</span>
+                            <span class="color-hex">#2196F3</span>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background-color: #F44336;"></div>
+                            <span class="color-name">Rojo</span>
+                            <span class="color-hex">#F44336</span>
+                        </div>
+                        <div class="color-item">
+                            <div class="color-box" style="background-color: #FFFFFF;"></div>
+                            <span class="color-name">Blanco</span>
+                            <span class="color-hex">#FFFFFF</span>
+                        </div>
+                    </div>
+                    
+                    <p>
+                        Además, la aplicación permite al usuario seleccionar un color personalizado utilizando el selector de color nativo del navegador.
+                    </p>
+                    
+                    <div class="subsection">
+                        <h3 class="subsection-title">Colores de la Interfaz</h3>
+                        <p>
+                            La interfaz de la aplicación utiliza los siguientes colores:
+                        </p>
+                        <ul>
+                            <li><strong>Fondo principal:</strong> #1E1E1E (gris oscuro)</li>
+                            <li><strong>Fondo del panel de herramientas:</strong> #252525 (gris oscuro)</li>
+                            <li><strong>Fondo del área de dibujo:</strong> #1A1A24 (azul oscuro)</li>
+                            <li><strong>Bordes y separadores:</strong> #333333 (gris)</li>
+                            <li><strong>Texto principal:</strong> #FFFFFF (blanco)</li>
+                            <li><strong>Texto secundario:</strong> #999999 (gris claro)</li>
+                            <li><strong>Acento principal:</strong> #FFBF00 (ámbar)</li>
+                        </ul>
+                        <p>
+                            Estos colores fueron seleccionados para crear una interfaz moderna y agradable a la vista, con un alto contraste que facilita la visualización de los elementos dibujados.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="atajos-teclado" class="section">
+                    <h2 class="section-title">Atajos de Teclado</h2>
+                    <p>
+                        La aplicación incluye varios atajos de teclado para facilitar su uso:
+                    </p>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tecla</th>
+                                <th>Función</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>F</td>
+                                <td>Seleccionar herramienta de trazo libre</td>
+                            </tr>
+                            <tr>
+                                <td>L</td>
+                                <td>Seleccionar herramienta de línea</td>
+                            </tr>
+                            <tr>
+                                <td>C</td>
+                                <td>Seleccionar herramienta de círculo</td>
+                            </tr>
+                            <tr>
+                                <td>R</td>
+                                <td>Seleccionar herramienta de rectángulo</td>
+                            </tr>
+                            <tr>
+                                <td>T</td>
+                                <td>Seleccionar herramienta de triángulo</td>
+                            </tr>
+                            <tr>
+                                <td>P</td>
+                                <td>Seleccionar herramienta de polígono</td>
+                            </tr>
+                            <tr>
+                                <td>B</td>
+                                <td>Seleccionar herramienta de curva Bézier abierta</td>
+                            </tr>
+                            <tr>
+                                <td>Z</td>
+                                <td>Seleccionar herramienta de curva Bézier cerrada</td>
+                            </tr>
+                            <tr>
+                                <td>G</td>
+                                <td>Mostrar/ocultar cuadrícula</td>
+                            </tr>
+                            <tr>
+                                <td>Supr</td>
+                                <td>Limpiar el lienzo</td>
+                            </tr>
+                            <tr>
+                                <td>Ctrl+S</td>
+                                <td>Guardar la imagen</td>
+                            </tr>
+                            <tr>
+                                <td>Escape</td>
+                                <td>Cancelar la operación actual</td>
+                            </tr>
+                            <tr>
+                                <td>Enter</td>
+                                <td>Finalizar el dibujo de polígonos o curvas Bézier</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <div class="footer">
+                    <p>Desarrollado por Jeronimo Riveros Perea</p>
+                    <p>Computación Gráfica - 2025</p>
+                </div>
+            </main>
+        </div>
+    </div>
+</body>
+</html>
