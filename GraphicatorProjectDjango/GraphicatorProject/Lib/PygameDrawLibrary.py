@@ -4,8 +4,6 @@ Pygame Drawing Library (Versión orientada a objetos)
 Esta biblioteca contiene clases para dibujar diferentes formas geométricas utilizando Pygame.
 Las funciones están extraídas del proyecto CG-Graficador y adaptadas para ser utilizadas
 de manera independiente con un enfoque orientado a objetos.
-
-Autor: Basado en el proyecto CG-Graficador (https://github.com/porgetit/CG-Graficador)
 """
 
 import pygame
