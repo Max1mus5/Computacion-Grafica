@@ -13,11 +13,12 @@ body {
 }
 
 .documentation-container {
-    max-width: 100vh;
+    width: 100vh;
     padding: 20px;
 }
 
 .documentation-header {
+    width: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
