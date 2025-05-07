@@ -283,6 +283,7 @@ pyrightconfig.json
 [Bb]in
 [Ii]nclude
 [Ll]ib
+!GraphicatorProjectDjango/GraphicatorProject/Lib/
 [Ll]ib64
 [Ll]ocal
 [Ss]cripts
