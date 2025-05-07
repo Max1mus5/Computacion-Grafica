@@ -1,9 +1,11 @@
 """
-Pygame Drawing Library (Versión orientada a objetos)
+Biblioteca de Algoritmos de Dibujo (Versión orientada a objetos)
 
-Esta biblioteca contiene clases para dibujar diferentes formas geométricas utilizando Pygame.
-Las funciones están extraídas del proyecto CG-Graficador y adaptadas para ser utilizadas
-de manera independiente con un enfoque orientado a objetos.
+Esta biblioteca contiene clases para dibujar diferentes formas geométricas utilizando algoritmos
+matemáticos propios. Implementa algoritmos como Bresenham para líneas y círculos, y algoritmos
+para dibujar rectángulos, polígonos y curvas de Bézier.
+
+Las funciones están diseñadas con un enfoque orientado a objetos para facilitar su uso y extensión.
 """
 
 import pygame
@@ -18,7 +20,7 @@ class DrawingAlgorithm(ABC):
         Inicializa un algoritmo de dibujo.
         
         Args:
-            algorithm_type (str): Tipo de algoritmo ("BASIC" o "PYGAME").
+            algorithm_type (str): Tipo de algoritmo ("BASIC" para algoritmos propios).
         """
         self.algorithm_type = algorithm_type
     
@@ -148,15 +150,15 @@ class DDALineAlgorithm(LineAlgorithm):
             x += x_increment
             y += y_increment
 
-class PygameLineAlgorithm(LineAlgorithm):
-    """Utiliza la función integrada de Pygame para dibujar líneas."""
+class OptimizedBresenhamLineAlgorithm(LineAlgorithm):
+    """Implementación optimizada del algoritmo de Bresenham para dibujar líneas."""
     
     def __init__(self):
-        super().__init__("PYGAME")
+        super().__init__("BASIC")
     
     def draw(self, surface, shape_data, canvas_rect=None):
         """
-        Dibuja una línea utilizando la función integrada de Pygame.
+        Dibuja una línea utilizando una versión optimizada del algoritmo de Bresenham.
         
         Args:
             surface (pygame.Surface): Superficie donde se dibujará.
@@ -175,7 +177,9 @@ class PygameLineAlgorithm(LineAlgorithm):
             if not (canvas_rect.collidepoint(points[0]) or canvas_rect.collidepoint(points[1])):
                 return
         
-        pygame.draw.line(surface, color, points[0], points[1], line_width)
+        # Usar el algoritmo de Bresenham optimizado
+        bresenham = BresenhamLineAlgorithm()
+        bresenham.draw(surface, shape_data, canvas_rect)
 
 class CircleAlgorithm(DrawingAlgorithm):
     """Clase base para algoritmos de dibujo de círculos."""
@@ -250,15 +254,15 @@ class BresenhamCircleAlgorithm(CircleAlgorithm):
                 else:
                     pygame.draw.circle(surface, color, (px, py), max(1, line_width // 2))
 
-class PygameCircleAlgorithm(CircleAlgorithm):
-    """Utiliza la función integrada de Pygame para dibujar círculos."""
+class OptimizedBresenhamCircleAlgorithm(CircleAlgorithm):
+    """Implementación optimizada del algoritmo de Bresenham para dibujar círculos."""
     
     def __init__(self):
-        super().__init__("PYGAME")
+        super().__init__("BASIC")
     
     def draw(self, surface, shape_data, canvas_rect=None):
         """
-        Dibuja un círculo utilizando la función integrada de Pygame.
+        Dibuja un círculo utilizando una versión optimizada del algoritmo de Bresenham.
         
         Args:
             surface (pygame.Surface): Superficie donde se dibujará.
@@ -281,17 +285,19 @@ class PygameCircleAlgorithm(CircleAlgorithm):
             if not canvas_rect.colliderect(circle_rect):
                 return
         
-        pygame.draw.circle(surface, color, center, radius, line_width)
+        # Usar el algoritmo de Bresenham optimizado
+        bresenham = BresenhamCircleAlgorithm()
+        bresenham.draw(surface, {'points': [center, (center[0] + radius, center[1])], 'color': color, 'line_width': line_width}, canvas_rect)
 
-class PygameCirclePointsAlgorithm(CircleAlgorithm):
-    """Dibuja un círculo utilizando puntos con la función de círculo de Pygame."""
+class MidpointCircleAlgorithm(CircleAlgorithm):
+    """Implementación del algoritmo del punto medio para dibujar círculos."""
     
     def __init__(self):
-        super().__init__("PYGAME")
+        super().__init__("BASIC")
     
     def draw(self, surface, shape_data, canvas_rect=None):
         """
-        Dibuja un círculo utilizando puntos con la función de círculo de Pygame.
+        Dibuja un círculo utilizando el algoritmo del punto medio.
         
         Args:
             surface (pygame.Surface): Superficie donde se dibujará.
@@ -326,7 +332,7 @@ class PygameCirclePointsAlgorithm(CircleAlgorithm):
     
     def _draw_circle_points(self, surface, xc, yc, x, y, color, line_width, canvas_rect=None):
         """
-        Función auxiliar para dibujar los puntos de un círculo utilizando círculos pequeños de Pygame.
+        Función auxiliar para dibujar los puntos de un círculo utilizando el algoritmo del punto medio.
         
         Args:
             surface (pygame.Surface): Superficie donde se dibujarán los puntos.
@@ -342,7 +348,17 @@ class PygameCirclePointsAlgorithm(CircleAlgorithm):
         ]
         for px, py in points:
             if canvas_rect is None or canvas_rect.collidepoint(px, py):
-                pygame.draw.circle(surface, color, (px, py), max(1, line_width // 2))
+                # Dibujar un punto grueso utilizando un círculo pequeño
+                if line_width <= 1:
+                    surface.set_at((px, py), color)
+                else:
+                    # Usar un círculo pequeño para simular un punto grueso
+                    for dx in range(-line_width//2, line_width//2 + 1):
+                        for dy in range(-line_width//2, line_width//2 + 1):
+                            if dx*dx + dy*dy <= (line_width//2)*(line_width//2):
+                                nx, ny = px + dx, py + dy
+                                if 0 <= nx < surface.get_width() and 0 <= ny < surface.get_height():
+                                    surface.set_at((nx, ny), color)
 
 class RectangleAlgorithm(DrawingAlgorithm):
     """Clase base para algoritmos de dibujo de rectángulos."""
@@ -398,15 +414,15 @@ class BresenhamRectangleAlgorithm(RectangleAlgorithm):
             }
             bresenham.draw(surface, line_data, canvas_rect)
 
-class PygameRectangleAlgorithm(RectangleAlgorithm):
-    """Utiliza la función integrada de Pygame para dibujar rectángulos."""
+class OptimizedBresenhamRectangleAlgorithm(RectangleAlgorithm):
+    """Implementación optimizada del algoritmo de Bresenham para dibujar rectángulos."""
     
     def __init__(self):
-        super().__init__("PYGAME")
+        super().__init__("BASIC")
     
     def draw(self, surface, shape_data, canvas_rect=None):
         """
-        Dibuja un rectángulo utilizando la función integrada de Pygame.
+        Dibuja un rectángulo utilizando una versión optimizada del algoritmo de Bresenham para líneas.
         
         Args:
             surface (pygame.Surface): Superficie donde se dibujará.
@@ -422,6 +438,8 @@ class PygameRectangleAlgorithm(RectangleAlgorithm):
         
         x1, y1 = points[0]
         x2, y2 = points[1]
+        
+        # Crear un rectángulo para verificar colisiones
         rect = pygame.Rect(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
         
         if canvas_rect is not None:
@@ -430,7 +448,9 @@ class PygameRectangleAlgorithm(RectangleAlgorithm):
                 return
             rect = rect.clip(canvas_rect)
         
-        pygame.draw.rect(surface, color, rect, line_width)
+        # Usar el algoritmo de Bresenham para rectángulos
+        bresenham = BresenhamRectangleAlgorithm()
+        bresenham.draw(surface, shape_data, canvas_rect)
 
 class PolygonAlgorithm(DrawingAlgorithm):
     """Clase base para algoritmos de dibujo de polígonos."""
@@ -487,15 +507,15 @@ class BresenhamPolygonAlgorithm(PolygonAlgorithm):
             }
             bresenham.draw(surface, line_data, canvas_rect)
 
-class PygamePolygonAlgorithm(PolygonAlgorithm):
-    """Utiliza la función integrada de Pygame para dibujar polígonos."""
+class BresenhamPolygonAlgorithm(PolygonAlgorithm):
+    """Implementación del algoritmo de Bresenham para dibujar polígonos."""
     
     def __init__(self):
-        super().__init__("PYGAME")
+        super().__init__("BASIC")
     
     def draw(self, surface, shape_data, canvas_rect=None):
         """
-        Dibuja un polígono utilizando la función integrada de Pygame.
+        Dibuja un polígono utilizando el algoritmo de Bresenham para líneas.
         
         Args:
             surface (pygame.Surface): Superficie donde se dibujará.
@@ -508,7 +528,9 @@ class PygamePolygonAlgorithm(PolygonAlgorithm):
         
         if len(points) < 3:
             if len(points) == 2:
-                pygame.draw.line(surface, color, points[0], points[1], line_width)
+                # Usar Bresenham para dibujar una línea
+                bresenham = BresenhamLineAlgorithm()
+                bresenham.draw(surface, {'points': points, 'color': color, 'line_width': line_width}, canvas_rect)
             return
         
         if canvas_rect is not None:
@@ -516,7 +538,20 @@ class PygamePolygonAlgorithm(PolygonAlgorithm):
             if not any(canvas_rect.collidepoint(p) for p in points):
                 return
         
-        pygame.draw.polygon(surface, color, points, line_width)
+        # Dibujar cada lado del polígono usando el algoritmo de Bresenham
+        bresenham = BresenhamLineAlgorithm()
+        
+        for i in range(len(points)):
+            start_point = points[i]
+            end_point = points[(i + 1) % len(points)]  # Conectar el último punto con el primero
+            
+            line_data = {
+                'points': [start_point, end_point],
+                'color': color,
+                'line_width': line_width
+            }
+            
+            bresenham.draw(surface, line_data, canvas_rect)
 
 class CurveAlgorithm(DrawingAlgorithm):
     """Clase base para algoritmos de dibujo de curvas."""
@@ -572,15 +607,15 @@ class BezierCurveAlgorithm(CurveAlgorithm):
         except Exception as e:
             print(f"Error al dibujar la curva Bézier: {e}")
 
-class PygameBezierCurveAlgorithm(CurveAlgorithm):
-    """Utiliza la función integrada de Pygame para dibujar curvas de Bézier."""
+class BezierCurveBresenhamAlgorithm(CurveAlgorithm):
+    """Implementación de curvas de Bézier utilizando el algoritmo de Bresenham para líneas."""
     
     def __init__(self):
-        super().__init__("PYGAME")
+        super().__init__("BASIC")
     
     def draw(self, surface, shape_data, canvas_rect=None):
         """
-        Dibuja una curva de Bézier cuadrática utilizando pygame.draw.lines.
+        Dibuja una curva de Bézier cuadrática utilizando el algoritmo de Bresenham para líneas.
         
         Args:
             surface (pygame.Surface): Superficie donde se dibujará.
@@ -611,7 +646,16 @@ class PygameBezierCurveAlgorithm(CurveAlgorithm):
                     if not any(canvas_rect.collidepoint(p) for p in curve_points):
                         return
                 
-                pygame.draw.lines(surface, color, False, curve_points, line_width)
+                # Dibujar segmentos de línea utilizando el algoritmo de Bresenham
+                bresenham = BresenhamLineAlgorithm()
+                
+                for i in range(len(curve_points) - 1):
+                    line_data = {
+                        'points': [curve_points[i], curve_points[i + 1]],
+                        'color': color,
+                        'line_width': line_width
+                    }
+                    bresenham.draw(surface, line_data, canvas_rect)
         except Exception as e:
             print(f"Error al dibujar la curva Bézier: {e}")
 
@@ -783,12 +827,10 @@ class Line(Shape):
             points (list): Lista de dos puntos [start_point, end_point].
             color (tuple): Color de la línea en formato RGB.
             line_width (int): Grosor de la línea.
-            algorithm_type (str): Tipo de algoritmo a utilizar ("BASIC" o "PYGAME").
+            algorithm_type (str): Tipo de algoritmo a utilizar (siempre usa Bresenham).
         """
-        if algorithm_type == "BASIC":
-            algorithm = BresenhamLineAlgorithm()  # Usamos Bresenham en lugar de DDA
-        else:
-            algorithm = PygameLineAlgorithm()
+        # Siempre usamos nuestro propio algoritmo de Bresenham
+        algorithm = BresenhamLineAlgorithm()
         super().__init__(points, color, line_width, algorithm)
 
 class Circle(Shape):
@@ -802,12 +844,10 @@ class Circle(Shape):
             points (list): Lista de dos puntos [center, point_on_circumference].
             color (tuple): Color del círculo en formato RGB.
             line_width (int): Grosor de la línea.
-            algorithm_type (str): Tipo de algoritmo a utilizar ("BASIC" o "PYGAME").
+            algorithm_type (str): Tipo de algoritmo a utilizar (siempre usa Bresenham).
         """
-        if algorithm_type == "BASIC":
-            algorithm = BresenhamCircleAlgorithm()  # Usamos Bresenham en lugar de Midpoint
-        else:
-            algorithm = PygameCircleAlgorithm() if line_width > 0 else PygameCirclePointsAlgorithm()
+        # Siempre usamos nuestro propio algoritmo de Bresenham
+        algorithm = BresenhamCircleAlgorithm()
         super().__init__(points, color, line_width, algorithm)
 
 class Rectangle(Shape):
@@ -821,9 +861,10 @@ class Rectangle(Shape):
             points (list): Lista de dos puntos [top_left, bottom_right].
             color (tuple): Color del rectángulo en formato RGB.
             line_width (int): Grosor de las líneas.
-            algorithm_type (str): Tipo de algoritmo a utilizar ("BASIC" o "PYGAME").
+            algorithm_type (str): Tipo de algoritmo a utilizar (siempre usa Bresenham).
         """
-        algorithm = BresenhamRectangleAlgorithm() if algorithm_type == "BASIC" else PygameRectangleAlgorithm()
+        # Siempre usamos nuestro propio algoritmo de Bresenham
+        algorithm = BresenhamRectangleAlgorithm()
         super().__init__(points, color, line_width, algorithm)
 
 class Polygon(Shape):
@@ -837,9 +878,10 @@ class Polygon(Shape):
             points (list): Lista de puntos que forman el polígono.
             color (tuple): Color del polígono en formato RGB.
             line_width (int): Grosor de las líneas.
-            algorithm_type (str): Tipo de algoritmo a utilizar ("BASIC" o "PYGAME").
+            algorithm_type (str): Tipo de algoritmo a utilizar (siempre usa Bresenham).
         """
-        algorithm = BresenhamPolygonAlgorithm() if algorithm_type == "BASIC" else PygamePolygonAlgorithm()
+        # Siempre usamos nuestro propio algoritmo de Bresenham
+        algorithm = BresenhamPolygonAlgorithm()
         super().__init__(points, color, line_width, algorithm)
 
 class Curve(Shape):
@@ -853,10 +895,11 @@ class Curve(Shape):
             points (list): Lista de tres puntos [p0, p1, p2] que definen la curva.
             color (tuple): Color de la curva en formato RGB.
             line_width (int): Grosor de la línea.
-            algorithm_type (str): Tipo de algoritmo a utilizar ("BASIC" o "PYGAME").
+            algorithm_type (str): Tipo de algoritmo a utilizar (siempre usa Bresenham).
             steps (int): Número de segmentos para aproximar la curva.
         """
-        algorithm = BezierCurveAlgorithm() if algorithm_type == "BASIC" else PygameBezierCurveAlgorithm()
+        # Siempre usamos nuestro propio algoritmo de Bresenham para curvas de Bézier
+        algorithm = BezierCurveBresenhamAlgorithm()
         super().__init__(points, color, line_width, algorithm)
         self.steps = steps
     
