@@ -1,6 +1,6 @@
 /**
  * Graficador Pygame - Aplicación de dibujo para navegador
- * Basado en la biblioteca PygameDrawLibrary
+ * Integrado con la biblioteca PygameDrawLibrary
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', function() {
         circle: document.getElementById('circle-tool'),
         bezier: document.getElementById('bezier-tool'),
         'bezier-closed': document.getElementById('bezier-closed-tool'),
+        'erase-free': document.getElementById('erase-free-tool'),
+        'erase-area': document.getElementById('erase-area-tool'),
         grid: document.getElementById('grid-tool'),
         rectangle: document.getElementById('rectangle-tool'),
         triangle: document.getElementById('triangle-tool'),
@@ -570,7 +572,65 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 break;
+                
+            case 'erase-free':
+                // No necesitamos hacer nada especial aquí, se maneja en los eventos del mouse
+                break;
+                
+            case 'erase-area':
+                if (points.length >= 2) {
+                    const [x1, y1] = points[0];
+                    const [x2, y2] = points[1];
+                    
+                    // Dibujar un rectángulo con línea punteada para mostrar el área a borrar
+                    if (preview) {
+                        ctx.setLineDash([5, 5]);
+                        ctx.strokeStyle = '#FF0000';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                        ctx.setLineDash([]);
+                    }
+                }
+                break;
         }
+    }
+    
+    // Función para comunicarse con la API de dibujo
+    async function callDrawingAPI(action, data = {}) {
+        try {
+            const response = await fetch('/paint/api/draw/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    action: action,
+                    ...data
+                })
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Error al comunicarse con la API de dibujo:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    // Función para obtener el token CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
     
     // Función para redibujarlo todo
@@ -631,6 +691,8 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'circle': toolName = 'Círculo'; break;
             case 'bezier': toolName = 'Curva Bézier Abierta'; break;
             case 'bezier-closed': toolName = 'Curva Bézier Cerrada'; break;
+            case 'erase-free': toolName = 'Borrador a Mano Alzada'; break;
+            case 'erase-area': toolName = 'Borrador de Área'; break;
             case 'grid': toolName = 'Cuadrícula'; break;
             case 'rectangle': toolName = 'Rectángulo'; break;
             case 'triangle': toolName = 'Triángulo'; break;
@@ -785,12 +847,28 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Evento para limpiar el canvas
-    clearCanvasBtn.addEventListener('click', () => {
+    clearCanvasBtn.addEventListener('click', async () => {
         if (confirm('¿Estás seguro de que quieres limpiar el lienzo?')) {
+            // Limpiar el estado local
             state.shapes = [];
             state.undoStack = [];
             state.redoStack = [];
-            redrawCanvas();
+            
+            // Usar la API para limpiar el lienzo en el servidor
+            const result = await callDrawingAPI('clear');
+            
+            if (result.success && result.image) {
+                // Actualizar el canvas con la imagen devuelta por la API
+                const img = new Image();
+                img.onload = function() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = result.image;
+            } else {
+                // Si hay un error, al menos limpiar el canvas local
+                redrawCanvas();
+            }
         }
     });
     
@@ -813,7 +891,37 @@ document.addEventListener('DOMContentLoaded', function() {
         
         state.isDrawing = true;
         
-        // Crear una nueva forma
+        // Manejar herramientas de borrado
+        if (state.currentTool === 'erase-free' || state.currentTool === 'erase-area') {
+            state.currentShape = {
+                type: state.currentTool,
+                points: [[x, y]],
+                color: '#ffffff', // Color blanco para borrar
+                lineWidth: state.currentTool === 'erase-free' ? state.lineWidth * 2 : state.lineWidth,
+                algorithm: 'erase'
+            };
+            
+            if (state.currentTool === 'erase-free') {
+                // Para el borrador a mano alzada, añadimos la forma inmediatamente
+                if (!state.shapes.includes(state.currentShape)) {
+                    state.shapes.push(state.currentShape);
+                }
+                
+                // Llamar a la API para borrar
+                callDrawingAPI('erase', {
+                    erase_data: {
+                        type: 'free',
+                        point: [x, y],
+                        size: state.lineWidth * 2
+                    }
+                });
+                
+                redrawCanvas();
+            }
+            return;
+        }
+        
+        // Crear una nueva forma para herramientas de dibujo
         state.currentShape = {
             type: state.currentTool,
             points: [[x, y]],
@@ -885,7 +993,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    canvas.addEventListener('mousemove', (e) => {
+    canvas.addEventListener('mousemove', async (e) => {
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
@@ -894,6 +1002,32 @@ document.addEventListener('DOMContentLoaded', function() {
         coordinatesDisplay.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
         
         if (state.isDrawing && state.currentShape) {
+            // Para las herramientas de borrado
+            if (state.currentTool === 'erase-free') {
+                state.currentShape.points.push([x, y]);
+                
+                // Llamar a la API para borrar
+                const result = await callDrawingAPI('erase', {
+                    erase_data: {
+                        type: 'free',
+                        point: [x, y],
+                        size: state.lineWidth * 2
+                    }
+                });
+                
+                if (result.success && result.image) {
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = result.image;
+                } else {
+                    redrawCanvas();
+                }
+                return;
+            }
+            
             // Para el trazo libre, añadir el punto actual
             if (state.currentTool === 'freehand') {
                 state.currentShape.points.push([x, y]);
@@ -914,11 +1048,79 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    canvas.addEventListener('mouseup', (e) => {
+    canvas.addEventListener('mouseup', async (e) => {
         if (state.isDrawing && state.currentShape) {
+            // Para las herramientas de borrado
+            if (state.currentTool === 'erase-free') {
+                state.currentShape.completed = true;
+                state.isDrawing = false;
+                state.currentShape = null;
+                
+                // Limpiar la pila de rehacer cuando se borra algo
+                state.redoStack = [];
+                return;
+            }
+            
+            if (state.currentTool === 'erase-area') {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Obtener los puntos inicial y final para definir el área
+                const startPoint = state.currentShape.points[0];
+                const endPoint = [x, y];
+                
+                // Llamar a la API para borrar un área
+                const result = await callDrawingAPI('erase', {
+                    erase_data: {
+                        type: 'area',
+                        start_point: startPoint,
+                        end_point: endPoint
+                    }
+                });
+                
+                if (result.success && result.image) {
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = result.image;
+                }
+                
+                state.currentShape.completed = true;
+                state.isDrawing = false;
+                state.currentShape = null;
+                
+                // Limpiar la pila de rehacer cuando se borra algo
+                state.redoStack = [];
+                return;
+            }
+            
             // Para el trazo libre, completar la forma
             if (state.currentTool === 'freehand') {
                 state.currentShape.completed = true;
+                
+                // Usar la API para dibujar con PygameDrawLibrary
+                const result = await callDrawingAPI('draw', {
+                    shape: {
+                        type: 'freehand',
+                        points: state.currentShape.points,
+                        color: state.currentShape.color,
+                        line_width: state.currentShape.lineWidth
+                    }
+                });
+                
+                if (result.success && result.image) {
+                    // Actualizar el canvas con la imagen devuelta por la API
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = result.image;
+                }
+                
                 state.isDrawing = false;
                 state.currentShape = null;
                 
@@ -937,21 +1139,63 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Para el triángulo y la curva de Bézier, necesitamos puntos adicionales
-            if (state.currentTool === 'triangle' || state.currentTool === 'bezier') {
+            if (state.currentTool === 'triangle' || state.currentTool === 'bezier' || state.currentTool === 'bezier-closed') {
                 if (!state.shapes.includes(state.currentShape)) {
                     state.shapes.push(state.currentShape);
                 }
                 
                 if ((state.currentTool === 'triangle' && state.currentShape.points.length < 3) ||
-                    (state.currentTool === 'bezier' && state.currentShape.points.length < 4)) {
+                    ((state.currentTool === 'bezier' || state.currentTool === 'bezier-closed') && state.currentShape.points.length < 4)) {
                     state.isDrawing = false;
                     return;
+                }
+                
+                // Si tenemos suficientes puntos, dibujar con la API
+                if ((state.currentTool === 'triangle' && state.currentShape.points.length >= 3) ||
+                    ((state.currentTool === 'bezier' || state.currentTool === 'bezier-closed') && state.currentShape.points.length >= 4)) {
+                    
+                    const result = await callDrawingAPI('draw', {
+                        shape: {
+                            type: state.currentTool,
+                            points: state.currentShape.points,
+                            color: state.currentShape.color,
+                            line_width: state.currentShape.lineWidth
+                        }
+                    });
+                    
+                    if (result.success && result.image) {
+                        const img = new Image();
+                        img.onload = function() {
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                            ctx.drawImage(img, 0, 0);
+                        };
+                        img.src = result.image;
+                    }
                 }
             }
             
             // Para las demás herramientas, completamos la forma
             if (!state.shapes.includes(state.currentShape)) {
                 state.shapes.push(state.currentShape);
+                
+                // Usar la API para dibujar con PygameDrawLibrary
+                const result = await callDrawingAPI('draw', {
+                    shape: {
+                        type: state.currentTool,
+                        points: state.currentShape.points,
+                        color: state.currentShape.color,
+                        line_width: state.currentShape.lineWidth
+                    }
+                });
+                
+                if (result.success && result.image) {
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                    };
+                    img.src = result.image;
+                }
             }
             
             state.currentShape.completed = true;
@@ -998,6 +1242,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mostrar/ocultar cuadrícula con G
         if (e.key.toLowerCase() === 'g') {
             toggleGrid();
+        }
+        
+        // Borrador a mano alzada con E
+        if (e.key.toLowerCase() === 'e') {
+            setActiveTool('erase-free');
+        }
+        
+        // Borrador de área con A
+        if (e.key.toLowerCase() === 'a') {
+            setActiveTool('erase-area');
         }
         
         // Guardar con Ctrl+S
