@@ -1410,10 +1410,10 @@ class PygameDrawLibrary:
         
     def draw_bezier_curve(self, points, color=(0, 0, 0), line_width=1, is_closed=False):
         """
-        Dibuja una curva de Bézier cúbica utilizando los últimos 4 puntos.
+        Dibuja una curva de Bézier cúbica utilizando los 4 puntos proporcionados.
         
         Args:
-            points (list): Lista de puntos de control (se utilizarán los últimos 4).
+            points (list): Lista de puntos de control (se utilizarán los últimos 4 puntos).
             color (tuple): Color de la curva en formato RGB.
             line_width (int): Grosor de la línea.
             is_closed (bool): Si es True, cierra la curva conectando el último punto con el primero.
@@ -1442,11 +1442,11 @@ class PygameDrawLibrary:
         
         # Dibujar la curva utilizando líneas
         for i in range(len(curve_points) - 1):
-            self.draw_line(curve_points[i], curve_points[i+1], color, line_width)
+            pygame.draw.line(self.surface, color, curve_points[i], curve_points[i+1], line_width)
         
         # Si es cerrada, conectar el último punto con el primero
         if is_closed and len(curve_points) > 1:
-            self.draw_line(curve_points[-1], curve_points[0], color, line_width)
+            pygame.draw.line(self.surface, color, curve_points[-1], curve_points[0], line_width)
     
     def erase_area(self, start_point, end_point, erase_color=(255, 255, 255)):
         """
