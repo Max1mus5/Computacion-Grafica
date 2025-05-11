@@ -93,7 +93,9 @@ class BresenhamLineAlgorithm(LineAlgorithm):
         y_step = 1 if y1 < y2 else -1
         
         # Dibujar la línea
-        for x in range(x1, x2 + 1):
+        # Asegurarse de que los valores sean enteros para range()
+        x1_int, x2_int = int(x1), int(x2)
+        for x in range(x1_int, x2_int + 1):
             # Determinar el punto a dibujar según la pendiente
             point = (y, x) if steep else (x, y)
             
@@ -144,7 +146,9 @@ class DDALineAlgorithm(LineAlgorithm):
         y_increment = dy / steps
         x, y = x1, y1
         
-        for _ in range(steps + 1):
+        # Asegurarse de que steps sea un entero para range()
+        steps_int = int(steps)
+        for _ in range(steps_int + 1):
             if canvas_rect is None or canvas_rect.collidepoint(round(x), round(y)):
                 pygame.draw.circle(surface, color, (round(x), round(y)), max(1, line_width // 2))
             x += x_increment
@@ -598,7 +602,8 @@ class BezierCurveAlgorithm(CurveAlgorithm):
         
         try:
             # Calcular los puntos de la curva de Bézier
-            for i in range(steps + 1):
+            steps_int = int(steps)
+            for i in range(steps_int + 1):
                 t = i / steps
                 # Fórmula de la curva de Bézier cuadrática
                 x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
@@ -647,7 +652,8 @@ class BezierCurveBresenhamAlgorithm(CurveAlgorithm):
         curve_points = []
         
         try:
-            for i in range(steps + 1):
+            steps_int = int(steps)
+            for i in range(steps_int + 1):
                 t = i / steps
                 x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
                 y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
@@ -797,7 +803,8 @@ class FreehandDrawAlgorithm(DrawingAlgorithm):
             y_increment = dy / steps
             x, y = x1, y1
             
-            for _ in range(steps + 1):
+            steps_int = int(steps)
+            for _ in range(steps_int + 1):
                 pygame.draw.circle(surface, color, (round(x), round(y)), max(1, line_width // 2))
                 x += x_increment
                 y += y_increment
