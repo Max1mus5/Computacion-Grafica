@@ -1374,6 +1374,37 @@ class PygameDrawLibrary:
         
         print(f"DEBUG: Dibujando trazo libre con {len(points)} puntos")
         self.algorithms["freehand"].draw(self.surface, shape_data, self.canvas_rect)
+        
+    def draw_bezier_curve(self, points, color=(0, 0, 0), line_width=1, is_closed=False):
+        """
+        Dibuja una curva de Bézier cúbica utilizando los últimos 4 puntos.
+        
+        Args:
+            points (list): Lista de puntos de control (se utilizarán los últimos 4).
+            color (tuple): Color de la curva en formato RGB.
+            line_width (int): Grosor de la línea.
+            is_closed (bool): Si es True, cierra la curva conectando el último punto con el primero.
+        """
+        # Asegurarse de que hay al menos 4 puntos
+        if len(points) < 4:
+            print(f"ERROR: Se necesitan al menos 4 puntos para una curva de Bézier cúbica, se proporcionaron {len(points)}")
+            return
+        
+        # Tomar los últimos 4 puntos
+        control_points = points[-4:]
+        print(f"DEBUG: Dibujando curva de Bézier con los puntos: {control_points}")
+        
+        # Crear shape_data para el algoritmo de curva
+        shape_data = {
+            'points': control_points,
+            'color': color,
+            'line_width': line_width,
+            'steps': 100,
+            'closed': is_closed
+        }
+        
+        # Usar el algoritmo de curva de Bézier
+        self.algorithms["curve"].draw(self.surface, shape_data, self.canvas_rect)
     
     def erase_area(self, start_point, end_point, erase_color=(255, 255, 255)):
         """
