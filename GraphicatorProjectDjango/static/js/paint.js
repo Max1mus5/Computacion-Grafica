@@ -1244,13 +1244,13 @@ document.addEventListener('DOMContentLoaded', function() {
             toggleGrid();
         }
         
-        // Borrador a mano alzada con E
-        if (e.key.toLowerCase() === 'e') {
+        // Borrador a mano alzada con X
+        if (e.key.toLowerCase() === 'x') {
             setActiveTool('erase-free');
         }
         
-        // Borrador de área con A
-        if (e.key.toLowerCase() === 'a') {
+        // Borrador de área con D
+        if (e.key.toLowerCase() === 'd') {
             setActiveTool('erase-area');
         }
         
