@@ -201,15 +201,25 @@ class BresenhamCircleAlgorithm(CircleAlgorithm):
             canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
         """
         print("DEBUG: BresenhamCircleAlgorithm.draw() llamado")
-        points = shape_data.get('points', [])
+        
+        # Intentar obtener centro y radio directamente
+        center = shape_data.get('center')
+        radius = shape_data.get('radius')
         color = shape_data.get('color', (0, 0, 0))
         line_width = shape_data.get('line_width', 1)
         
-        if len(points) < 2:
-            return
-        
-        center = points[0]
-        radius = int(math.hypot(points[1][0] - center[0], points[1][1] - center[1]))
+        # Si no hay centro y radio, intentar calcularlos a partir de puntos
+        if not center or not radius:
+            points = shape_data.get('points', [])
+            if len(points) < 2:
+                print("DEBUG: No hay suficientes puntos para dibujar el círculo")
+                return
+            
+            center = points[0]
+            radius = int(math.hypot(points[1][0] - center[0], points[1][1] - center[1]))
+            print(f"DEBUG: Calculando círculo con centro {center} y radio {radius}")
+        else:
+            print(f"DEBUG: Usando círculo con centro {center} y radio {radius}")
         
         x_center, y_center = center
         x = 0
@@ -231,6 +241,8 @@ class BresenhamCircleAlgorithm(CircleAlgorithm):
             
             # Dibuja los puntos en las ocho octantes
             self._draw_circle_points(surface, x_center, y_center, x, y, color, line_width, canvas_rect)
+        
+        print(f"DEBUG: Círculo dibujado con centro ({x_center}, {y_center}), radio {radius}, color {color}")
     
     def _draw_circle_points(self, surface, xc, yc, x, y, color, line_width, canvas_rect=None):
         """
@@ -684,16 +696,24 @@ class EraseAreaAlgorithm(EraseAlgorithm):
         erase_color = shape_data.get('erase_color', (255, 255, 255))
         
         if len(points) < 2:
+            print("DEBUG: No hay suficientes puntos para borrar el área")
             return
         
         x1, y1 = points[0]
         x2, y2 = points[1]
-        rect = pygame.Rect(min(x1, x2), min(y1, y2), abs(x2 - x1), abs(y2 - y1))
+        left = min(x1, x2)
+        top = min(y1, y2)
+        width = abs(x2 - x1)
+        height = abs(y2 - y1)
+        
+        print(f"DEBUG: Borrando área rectangular: ({left}, {top}, {width}, {height})")
+        rect = pygame.Rect(left, top, width, height)
         
         if canvas_rect is not None:
             rect = rect.clip(canvas_rect)
         
         pygame.draw.rect(surface, erase_color, rect)
+        print(f"DEBUG: Área borrada con color {erase_color}")
 
 class FreehandEraseAlgorithm(EraseAlgorithm):
     """Algoritmo para borrar siguiendo una línea a mano alzada."""
@@ -713,18 +733,24 @@ class FreehandEraseAlgorithm(EraseAlgorithm):
         print("DEBUG: FreehandEraseAlgorithm.draw() llamado")
         points = shape_data.get('points', [])
         erase_color = shape_data.get('erase_color', (255, 255, 255))
-        line_width = shape_data.get('line_width', 1)
+        radius = shape_data.get('radius', 10)
         
-        if len(points) < 2:
+        if len(points) < 1:
+            print("DEBUG: No hay suficientes puntos para borrar")
             return
+        
+        print(f"DEBUG: Borrando con trazo libre, {len(points)} puntos, radio {radius}")
         
         if canvas_rect is not None:
             filtered_points = [p for p in points if canvas_rect.collidepoint(p)]
         else:
             filtered_points = points
         
-        if len(filtered_points) > 1:
-            pygame.draw.lines(surface, erase_color, False, filtered_points, line_width)
+        # Dibujar círculos en cada punto para simular un borrador
+        for point in filtered_points:
+            pygame.draw.circle(surface, erase_color, point, radius)
+        
+        print(f"DEBUG: Borrado libre completado con color {erase_color}")
 
 class FreehandDrawAlgorithm(DrawingAlgorithm):
     """Algoritmo para dibujar a mano alzada."""
@@ -1178,3 +1204,249 @@ def get_circle_radius(center, point):
         int: Radio del círculo.
     """
     return int(calculate_distance(center, point))
+
+
+class PygameDrawLibrary:
+    """
+    Biblioteca de dibujo para Pygame que utiliza los algoritmos definidos anteriormente.
+    Esta clase sirve como interfaz principal para la aplicación local.
+    """
+    
+    def __init__(self, surface):
+        """
+        Inicializa la biblioteca de dibujo.
+        
+        Args:
+            surface (pygame.Surface): Superficie donde se dibujará.
+        """
+        self.surface = surface
+        self.canvas_rect = surface.get_rect()
+        
+        # Inicializar algoritmos de dibujo
+        self.algorithms = {
+            "line": BresenhamLineAlgorithm(),
+            "circle": BresenhamCircleAlgorithm(),
+            "rectangle": BresenhamRectangleAlgorithm(),
+            "polygon": BresenhamPolygonAlgorithm(),
+            "curve": BezierCurveAlgorithm(),
+            "erase-area": EraseAreaAlgorithm(),
+            "erase-free": FreehandEraseAlgorithm(),
+            "freehand": FreehandDrawAlgorithm()
+        }
+        
+        print("DEBUG: PygameDrawLibrary inicializada")
+    
+    def draw_line(self, start_point, end_point, color=(0, 0, 0), line_width=1):
+        """
+        Dibuja una línea entre dos puntos.
+        
+        Args:
+            start_point (tuple): Punto inicial (x, y).
+            end_point (tuple): Punto final (x, y).
+            color (tuple): Color de la línea en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        shape_data = {
+            'points': [start_point, end_point],
+            'color': color,
+            'line_width': line_width
+        }
+        
+        print(f"DEBUG: Dibujando línea desde {start_point} hasta {end_point}")
+        self.algorithms["line"].draw(self.surface, shape_data, self.canvas_rect)
+    
+    def draw_circle(self, center, radius, color=(0, 0, 0), line_width=1):
+        """
+        Dibuja un círculo.
+        
+        Args:
+            center (tuple): Centro del círculo (x, y).
+            radius (int): Radio del círculo.
+            color (tuple): Color del círculo en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        shape_data = {
+            'center': center,
+            'radius': radius,
+            'color': color,
+            'line_width': line_width
+        }
+        
+        print(f"DEBUG: Dibujando círculo en {center} con radio {radius}")
+        self.algorithms["circle"].draw(self.surface, shape_data, self.canvas_rect)
+    
+    def draw_rectangle(self, start_point, end_point, color=(0, 0, 0), line_width=1):
+        """
+        Dibuja un rectángulo.
+        
+        Args:
+            start_point (tuple): Esquina superior izquierda (x, y).
+            end_point (tuple): Esquina inferior derecha (x, y).
+            color (tuple): Color del rectángulo en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        shape_data = {
+            'points': [start_point, end_point],
+            'color': color,
+            'line_width': line_width
+        }
+        
+        print(f"DEBUG: Dibujando rectángulo desde {start_point} hasta {end_point}")
+        self.algorithms["rectangle"].draw(self.surface, shape_data, self.canvas_rect)
+    
+    def draw_polygon(self, points, color=(0, 0, 0), line_width=1):
+        """
+        Dibuja un polígono.
+        
+        Args:
+            points (list): Lista de puntos que forman el polígono.
+            color (tuple): Color del polígono en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        shape_data = {
+            'points': points,
+            'color': color,
+            'line_width': line_width
+        }
+        
+        print(f"DEBUG: Dibujando polígono con {len(points)} puntos")
+        self.algorithms["polygon"].draw(self.surface, shape_data, self.canvas_rect)
+    
+    def draw_curve(self, control_points, color=(0, 0, 0), line_width=1):
+        """
+        Dibuja una curva de Bézier.
+        
+        Args:
+            control_points (list): Lista de puntos de control.
+            color (tuple): Color de la curva en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        shape_data = {
+            'points': control_points,
+            'color': color,
+            'line_width': line_width
+        }
+        
+        print(f"DEBUG: Dibujando curva con {len(control_points)} puntos de control")
+        self.algorithms["curve"].draw(self.surface, shape_data, self.canvas_rect)
+    
+    def draw_freehand(self, points, color=(0, 0, 0), line_width=1):
+        """
+        Dibuja un trazo a mano alzada.
+        
+        Args:
+            points (list): Lista de puntos que forman el trazo.
+            color (tuple): Color del trazo en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        shape_data = {
+            'points': points,
+            'color': color,
+            'line_width': line_width
+        }
+        
+        print(f"DEBUG: Dibujando trazo libre con {len(points)} puntos")
+        self.algorithms["freehand"].draw(self.surface, shape_data, self.canvas_rect)
+    
+    def erase_area(self, start_point, end_point, erase_color=(255, 255, 255)):
+        """
+        Borra un área rectangular.
+        
+        Args:
+            start_point (tuple): Esquina superior izquierda (x, y).
+            end_point (tuple): Esquina inferior derecha (x, y).
+            erase_color (tuple): Color para borrar (generalmente el color de fondo).
+        """
+        shape_data = {
+            'points': [start_point, end_point],
+            'erase_color': erase_color
+        }
+        
+        print(f"DEBUG: Borrando área desde {start_point} hasta {end_point}")
+        self.algorithms["erase-area"].draw(self.surface, shape_data, self.canvas_rect)
+    
+    def erase_freehand(self, points, erase_color=(255, 255, 255), radius=10):
+        """
+        Borra con trazo a mano alzada.
+        
+        Args:
+            points (list): Lista de puntos que forman el trazo.
+            erase_color (tuple): Color para borrar (generalmente el color de fondo).
+            radius (int): Radio del borrador.
+        """
+        shape_data = {
+            'points': points,
+            'erase_color': erase_color,
+            'radius': radius
+        }
+        
+        print(f"DEBUG: Borrando con trazo libre, {len(points)} puntos")
+        self.algorithms["erase-free"].draw(self.surface, shape_data, self.canvas_rect)
+    
+    def draw_shape(self, shape_type, shape_data):
+        """
+        Dibuja una forma del tipo especificado.
+        
+        Args:
+            shape_type (str): Tipo de forma ("line", "circle", "rectangle", "polygon", "curve", "freehand", "erase-area", "erase-free").
+            shape_data (dict): Datos de la forma a dibujar.
+        """
+        if shape_type.lower() == "line":
+            points = shape_data.get('points', [])
+            if len(points) >= 2:
+                self.draw_line(points[0], points[1], shape_data.get('color', (0, 0, 0)), shape_data.get('line_width', 1))
+        
+        elif shape_type.lower() == "circle":
+            points = shape_data.get('points', [])
+            if len(points) >= 2:
+                center = points[0]
+                radius = get_circle_radius(center, points[1])
+                self.draw_circle(center, radius, shape_data.get('color', (0, 0, 0)), shape_data.get('line_width', 1))
+            else:
+                center = shape_data.get('center')
+                radius = shape_data.get('radius')
+                if center and radius:
+                    self.draw_circle(center, radius, shape_data.get('color', (0, 0, 0)), shape_data.get('line_width', 1))
+        
+        elif shape_type.lower() == "rectangle":
+            points = shape_data.get('points', [])
+            if len(points) >= 2:
+                self.draw_rectangle(points[0], points[1], shape_data.get('color', (0, 0, 0)), shape_data.get('line_width', 1))
+        
+        elif shape_type.lower() == "polygon":
+            points = shape_data.get('points', [])
+            if len(points) >= 3:
+                self.draw_polygon(points, shape_data.get('color', (0, 0, 0)), shape_data.get('line_width', 1))
+        
+        elif shape_type.lower() == "curve":
+            points = shape_data.get('points', [])
+            if len(points) >= 3:
+                self.draw_curve(points, shape_data.get('color', (0, 0, 0)), shape_data.get('line_width', 1))
+        
+        elif shape_type.lower() == "freehand":
+            points = shape_data.get('points', [])
+            if len(points) >= 2:
+                self.draw_freehand(points, shape_data.get('color', (0, 0, 0)), shape_data.get('line_width', 1))
+        
+        elif shape_type.lower() == "erase-area":
+            points = shape_data.get('points', [])
+            if len(points) >= 2:
+                self.erase_area(points[0], points[1], shape_data.get('erase_color', (255, 255, 255)))
+        
+        elif shape_type.lower() == "erase-free":
+            points = shape_data.get('points', [])
+            if len(points) >= 1:
+                self.erase_freehand(points, shape_data.get('erase_color', (255, 255, 255)), shape_data.get('radius', 10))
+        
+        else:
+            print(f"ERROR: Tipo de forma no reconocido: {shape_type}")
+    
+    def clear(self, color=(255, 255, 255)):
+        """
+        Limpia la superficie con el color especificado.
+        
+        Args:
+            color (tuple): Color para limpiar la superficie.
+        """
+        self.surface.fill(color)
+        print(f"DEBUG: Superficie limpiada con color {color}")
