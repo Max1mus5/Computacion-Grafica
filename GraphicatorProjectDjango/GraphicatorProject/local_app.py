@@ -70,9 +70,6 @@ class GraphicatorLocalApp:
             'developer_link_hover': (33, 150, 243)
         }
         
-        # Inicializar la biblioteca de dibujo
-        self.draw_lib = PygameDrawLibrary(self.screen)
-        
         # Estado de la aplicación
         self.drawing = False
         self.current_tool = "freehand"  # Herramienta por defecto
@@ -81,6 +78,18 @@ class GraphicatorLocalApp:
         self.line_width = 2
         self.show_grid = True
         self.active_tab = "draw"  # Pestaña activa por defecto
+        
+        # Calcular dimensiones del panel y canvas
+        self.panel_width = int(self.width * 0.2)  # 20% del ancho
+        self.canvas_width = self.width - self.panel_width
+        self.canvas_height = self.height - 32  # Altura menos la barra de estado
+        
+        # Crear superficie para el canvas
+        self.canvas_surface = pygame.Surface((self.canvas_width, self.canvas_height))
+        self.canvas_surface.fill(self.UI_COLORS['canvas_bg'])
+        
+        # Inicializar la biblioteca de dibujo para el canvas
+        self.draw_lib = PygameDrawLibrary(self.canvas_surface)
         
         # Reloj para controlar FPS
         self.clock = pygame.time.Clock()
@@ -99,18 +108,17 @@ class GraphicatorLocalApp:
         # Limpiar la pantalla con el color de fondo
         self.screen.fill(self.UI_COLORS['background'])
         
-        # Calcular dimensiones
-        panel_width = int(self.width * 0.2)  # 20% del ancho
-        canvas_width = self.width - panel_width
-        canvas_height = self.height - 32  # Altura menos la barra de estado
+        # Definir áreas de la interfaz
+        panel_width = self.panel_width
+        canvas_width = self.canvas_width
+        canvas_height = self.canvas_height
         
-        # Dibujar el área del canvas (fondo)
-        canvas_rect = pygame.Rect(panel_width, 0, canvas_width, canvas_height)
-        pygame.draw.rect(self.screen, self.UI_COLORS['canvas_bg'], canvas_rect)
+        # Dibujar el canvas en la pantalla principal
+        self.screen.blit(self.canvas_surface, (panel_width, 0))
         
         # Dibujar cuadrícula si está activada
         if self.show_grid:
-            self.draw_grid(canvas_rect)
+            self.draw_grid()
         
         # Dibujar panel de herramientas
         panel_rect = pygame.Rect(0, 0, panel_width, canvas_height)
@@ -213,8 +221,15 @@ class GraphicatorLocalApp:
             self.screen.blit(tool_text, (tool_rect.centerx - tool_text.get_width() // 2, 
                                         tool_rect.centery - tool_text.get_height() // 2))
         
+        # Calcular posición de la paleta de colores
+        if self.active_tab == "draw":
+            tools_count = 8  # Número de herramientas en la pestaña de dibujo
+        else:
+            tools_count = 4  # Número de herramientas en la pestaña de formas
+        
+        color_section_y = tools_grid_y + (((tools_count + 1) // 2) * (tool_size + tool_padding)) + 20
+        
         # Sección de color
-        color_section_y = tools_grid_y + (((len(tools) + 1) // 2) * (tool_size + tool_padding)) + 20
         color_title = self.font_title.render("COLOR", True, self.UI_COLORS['text_secondary'])
         self.screen.blit(color_title, (16, color_section_y))
         
@@ -298,6 +313,7 @@ class GraphicatorLocalApp:
         
         # Visualización de coordenadas
         mouse_pos = pygame.mouse.get_pos()
+        canvas_rect = pygame.Rect(panel_width, 0, canvas_width, canvas_height)
         if canvas_rect.collidepoint(mouse_pos):
             canvas_x = mouse_pos[0] - panel_width
             canvas_y = mouse_pos[1]
@@ -354,8 +370,13 @@ class GraphicatorLocalApp:
         status_text = self.font_small.render("Listo", True, self.UI_COLORS['text_secondary'])
         self.screen.blit(status_text, (self.width - status_text.get_width() - 16, self.height - 24))
     
-    def draw_grid(self, canvas_rect):
+    def draw_grid(self):
         """Dibuja la cuadrícula en el área del canvas."""
+        panel_width = self.panel_width
+        canvas_width = self.canvas_width
+        canvas_height = self.canvas_height
+        canvas_rect = pygame.Rect(panel_width, 0, canvas_width, canvas_height)
+        
         grid_size = 40
         for x in range(canvas_rect.left, canvas_rect.right, grid_size):
             pygame.draw.line(self.screen, self.UI_COLORS['grid'], (x, canvas_rect.top), 
@@ -366,12 +387,11 @@ class GraphicatorLocalApp:
     
     def handle_events(self):
         """Maneja los eventos de Pygame."""
-        # Calcular dimensiones
-        panel_width = int(self.width * 0.2)  # 20% del ancho
-        canvas_width = self.width - panel_width
-        canvas_height = self.height - 32  # Altura menos la barra de estado
-        
         # Definir áreas de la interfaz
+        panel_width = self.panel_width
+        canvas_width = self.canvas_width
+        canvas_height = self.canvas_height
+        
         canvas_rect = pygame.Rect(panel_width, 0, canvas_width, canvas_height)
         panel_rect = pygame.Rect(0, 0, panel_width, canvas_height)
         
@@ -474,7 +494,7 @@ class GraphicatorLocalApp:
                 
                 # Tecla para limpiar el lienzo
                 elif event.key == pygame.K_DELETE:
-                    self.screen.fill(self.UI_COLORS['canvas_bg'], canvas_rect)
+                    self.canvas_surface.fill(self.UI_COLORS['canvas_bg'])
                     print("DEBUG: Lienzo limpiado")
                 
                 # Tecla para guardar imagen
@@ -549,7 +569,7 @@ class GraphicatorLocalApp:
                 
                 # Verificar si se hizo clic en los botones de acción
                 elif clear_btn_rect.collidepoint(mouse_pos):
-                    self.screen.fill(self.UI_COLORS['canvas_bg'], canvas_rect)
+                    self.canvas_surface.fill(self.UI_COLORS['canvas_bg'])
                     print("DEBUG: Lienzo limpiado")
                 elif save_btn_rect.collidepoint(mouse_pos):
                     self.save_image()
@@ -563,7 +583,12 @@ class GraphicatorLocalApp:
                 # Iniciar dibujo si se hizo clic en el área del canvas
                 elif canvas_rect.collidepoint(mouse_pos):
                     self.drawing = True
-                    self.points = [mouse_pos]
+                    # Ajustar las coordenadas al canvas
+                    canvas_pos = (mouse_pos[0] - panel_width, mouse_pos[1])
+                    self.points = [canvas_pos]
+                    
+                    # Crear una copia del canvas para poder restaurarlo durante la previsualización
+                    self.canvas_backup = self.canvas_surface.copy()
                     
                     if self.current_tool == "freehand":
                         print("DEBUG: Iniciando trazo libre")
@@ -572,7 +597,9 @@ class GraphicatorLocalApp:
             
             elif event.type == pygame.MOUSEMOTION:
                 if self.drawing and canvas_rect.collidepoint(event.pos):
-                    self.points.append(event.pos)
+                    # Ajustar las coordenadas al canvas
+                    canvas_pos = (event.pos[0] - panel_width, event.pos[1])
+                    self.points.append(canvas_pos)
                     
                     # Dibujar en tiempo real
                     if self.current_tool == "freehand":
@@ -592,12 +619,135 @@ class GraphicatorLocalApp:
                                 'radius': self.line_width * 5
                             }
                             self.draw_lib.draw_shape("erase-free", shape_data)
+                    
+                    # Previsualización para herramientas que dibujan al soltar el botón
+                    elif self.current_tool in ["line", "circle", "rectangle", "triangle", "ellipse", "bezier", "bezier-closed", "polygon", "erase-area"]:
+                        # Restaurar el canvas a su estado anterior
+                        self.canvas_surface.blit(self.canvas_backup, (0, 0))
+                        
+                        # Previsualizar la forma según la herramienta
+                        if self.current_tool == "line":
+                            shape_data = {
+                                'points': [self.points[0], self.points[-1]],
+                                'color': self.current_color,
+                                'line_width': self.line_width
+                            }
+                            self.draw_lib.draw_shape("line", shape_data)
+                        
+                        elif self.current_tool == "circle":
+                            shape_data = {
+                                'points': [self.points[0], self.points[-1]],
+                                'color': self.current_color,
+                                'line_width': self.line_width
+                            }
+                            self.draw_lib.draw_shape("circle", shape_data)
+                        
+                        elif self.current_tool == "rectangle":
+                            shape_data = {
+                                'points': [self.points[0], self.points[-1]],
+                                'color': self.current_color,
+                                'line_width': self.line_width
+                            }
+                            self.draw_lib.draw_shape("rectangle", shape_data)
+                        
+                        elif self.current_tool == "triangle":
+                            # Calcular el tercer punto del triángulo
+                            x1, y1 = self.points[0]
+                            x2, y2 = self.points[-1]
+                            x3 = x1 - (x2 - x1)
+                            y3 = y2
+                            
+                            shape_data = {
+                                'points': [[x1, y1], [x2, y2], [x3, y3]],
+                                'color': self.current_color,
+                                'line_width': self.line_width
+                            }
+                            self.draw_lib.draw_shape("polygon", shape_data)
+                        
+                        elif self.current_tool == "ellipse":
+                            shape_data = {
+                                'points': [self.points[0], self.points[-1]],
+                                'color': self.current_color,
+                                'line_width': self.line_width
+                            }
+                            self.draw_lib.draw_shape("circle", shape_data)  # Usamos círculo como aproximación
+                        
+                        elif self.current_tool == "bezier":
+                            # Calcular puntos de control para la curva Bézier
+                            x1, y1 = self.points[0]
+                            x2, y2 = self.points[-1]
+                            
+                            # Puntos de control a 1/3 y 2/3 de la distancia
+                            cx1 = x1 + (x2 - x1) / 3
+                            cy1 = y1 + (y2 - y1) / 3
+                            cx2 = x1 + 2 * (x2 - x1) / 3
+                            cy2 = y1 + 2 * (y2 - y1) / 3
+                            
+                            shape_data = {
+                                'points': [[x1, y1], [cx1, cy1], [cx2, cy2], [x2, y2]],
+                                'color': self.current_color,
+                                'line_width': self.line_width
+                            }
+                            self.draw_lib.draw_shape("curve", shape_data)
+                        
+                        elif self.current_tool == "bezier-closed":
+                            # Calcular puntos para la curva Bézier cerrada
+                            x1, y1 = self.points[0]
+                            x2, y2 = self.points[-1]
+                            
+                            # Crear una forma cerrada
+                            shape_data = {
+                                'points': [[x1, y1], [x2, y1], [x2, y2], [x1, y2], [x1, y1]],
+                                'color': self.current_color,
+                                'line_width': self.line_width
+                            }
+                            self.draw_lib.draw_shape("polygon", shape_data)
+                        
+                        elif self.current_tool == "polygon":
+                            # Crear un polígono regular de 6 lados
+                            x1, y1 = self.points[0]
+                            x2, y2 = self.points[-1]
+                            
+                            # Calcular el centro y el radio
+                            center_x = (x1 + x2) / 2
+                            center_y = (y1 + y2) / 2
+                            radius = math.sqrt((x2 - center_x)**2 + (y2 - center_y)**2)
+                            
+                            # Generar los puntos del polígono
+                            polygon_points = []
+                            sides = 6
+                            for i in range(sides):
+                                angle = 2 * math.pi * i / sides
+                                px = center_x + radius * math.cos(angle)
+                                py = center_y + radius * math.sin(angle)
+                                polygon_points.append([px, py])
+                            
+                            # Cerrar el polígono
+                            polygon_points.append(polygon_points[0])
+                            
+                            shape_data = {
+                                'points': polygon_points,
+                                'color': self.current_color,
+                                'line_width': self.line_width
+                            }
+                            self.draw_lib.draw_shape("polygon", shape_data)
+                        
+                        elif self.current_tool == "erase-area":
+                            shape_data = {
+                                'points': [self.points[0], self.points[-1]],
+                                'erase_color': self.UI_COLORS['canvas_bg']
+                            }
+                            self.draw_lib.draw_shape("erase-area", shape_data)
             
             elif event.type == pygame.MOUSEBUTTONUP:
                 if self.drawing:
                     self.drawing = False
                     
                     if canvas_rect.collidepoint(event.pos):
+                        # Ajustar las coordenadas al canvas
+                        canvas_pos = (event.pos[0] - panel_width, event.pos[1])
+                        self.points.append(canvas_pos)
+                        
                         if self.current_tool == "line" and len(self.points) >= 2:
                             print("DEBUG: Dibujando línea")
                             shape_data = {
@@ -647,7 +797,7 @@ class GraphicatorLocalApp:
                                 'color': self.current_color,
                                 'line_width': self.line_width
                             }
-                            self.draw_lib.draw_shape("ellipse", shape_data)
+                            self.draw_lib.draw_shape("circle", shape_data)  # Usamos círculo como aproximación
                         
                         elif self.current_tool == "bezier" and len(self.points) >= 2:
                             print("DEBUG: Dibujando curva Bézier")
@@ -666,7 +816,7 @@ class GraphicatorLocalApp:
                                 'color': self.current_color,
                                 'line_width': self.line_width
                             }
-                            self.draw_lib.draw_shape("bezier", shape_data)
+                            self.draw_lib.draw_shape("curve", shape_data)
                         
                         elif self.current_tool == "bezier-closed" and len(self.points) >= 2:
                             print("DEBUG: Dibujando curva Bézier cerrada")
@@ -724,19 +874,10 @@ class GraphicatorLocalApp:
     
     def save_image(self):
         """Guarda el contenido del canvas como una imagen PNG."""
-        # Calcular dimensiones del canvas
-        panel_width = int(self.width * 0.2)
-        canvas_width = self.width - panel_width
-        canvas_height = self.height - 32
-        
-        # Crear una superficie para guardar solo el área del canvas
-        canvas_surface = pygame.Surface((canvas_width, canvas_height))
-        canvas_surface.blit(self.screen, (0, 0), (panel_width, 0, canvas_width, canvas_height))
-        
         # Guardar la imagen
         timestamp = pygame.time.get_ticks()
         filename = f"graphicator_image_{timestamp}.png"
-        pygame.image.save(canvas_surface, filename)
+        pygame.image.save(self.canvas_surface, filename)
         print(f"DEBUG: Imagen guardada como {filename}")
     
     def run(self):
@@ -746,14 +887,8 @@ class GraphicatorLocalApp:
         # Limpiar la pantalla al inicio
         self.screen.fill(self.UI_COLORS['background'])
         
-        # Calcular dimensiones del canvas
-        panel_width = int(self.width * 0.2)
-        canvas_width = self.width - panel_width
-        canvas_height = self.height - 32
-        
         # Limpiar el área del canvas
-        canvas_rect = pygame.Rect(panel_width, 0, canvas_width, canvas_height)
-        self.screen.fill(self.UI_COLORS['canvas_bg'], canvas_rect)
+        self.canvas_surface.fill(self.UI_COLORS['canvas_bg'])
         
         print("DEBUG: Iniciando bucle principal de la aplicación local")
         
@@ -775,9 +910,9 @@ class GraphicatorLocalApp:
 def run_local_app():
     """Función para iniciar la aplicación local."""
     print("Iniciando aplicación local con Pygame...")
-    app = GraphicatorLocalApp()
+    app = GraphicatorLocalApp(width=1024, height=768)
     app.run()
 
 
 if __name__ == "__main__":
-    run_local_app()# Actualizado para corregir el renderizado de formas
+    run_local_app()
