@@ -478,9 +478,15 @@ class GraphicatorLocalApp:
                 self.canvas_surface = pygame.Surface((self.canvas_width, self.canvas_height))
                 self.canvas_surface.fill(self.UI_COLORS['canvas_bg'])
                 
-                # Copiar el contenido del canvas anterior al nuevo
-                self.canvas_surface.blit(old_canvas, (0, 0))
-                print(f"DEBUG: Ventana redimensionada a {self.width}x{self.height}")
+                # Copiar el contenido del canvas anterior al nuevo, centrado
+                old_width, old_height = old_canvas.get_size()
+                paste_x = max(0, (self.canvas_width - old_width) // 2)
+                paste_y = max(0, (self.canvas_height - old_height) // 2)
+                self.canvas_surface.blit(old_canvas, (paste_x, paste_y))
+                
+                # Actualizar la biblioteca de dibujo con la nueva superficie
+                self.draw_lib = PygameDrawLibrary(self.canvas_surface)
+                print(f"DEBUG: Ventana redimensionada a {self.width}x{self.height}, canvas: {self.canvas_width}x{self.canvas_height}")
             
             # Manejo de teclas
             elif event.type == pygame.KEYDOWN:
@@ -720,10 +726,11 @@ class GraphicatorLocalApp:
                             self.draw_lib.draw_shape("circle", shape_data)  # Usamos círculo como aproximación
                         
                         elif self.current_tool == "bezier":
-                            # Calcular puntos de control para la curva Bézier
+                            # Curva de Bézier cúbica abierta
                             x1, y1 = self.points[0]
                             x2, y2 = self.points[-1]
                             
+                            # Calcular puntos de control para la curva Bézier
                             # Puntos de control a 1/3 y 2/3 de la distancia
                             cx1 = x1 + (x2 - x1) / 3
                             cy1 = y1 + (y2 - y1) / 3
@@ -733,22 +740,60 @@ class GraphicatorLocalApp:
                             shape_data = {
                                 'points': [[x1, y1], [cx1, cy1], [cx2, cy2], [x2, y2]],
                                 'color': self.current_color,
-                                'line_width': self.line_width
+                                'line_width': self.line_width,
+                                'closed': False
                             }
                             self.draw_lib.draw_shape("curve", shape_data)
                         
                         elif self.current_tool == "bezier-closed":
-                            # Calcular puntos para la curva Bézier cerrada
+                            # Curva de Bézier cúbica cerrada
                             x1, y1 = self.points[0]
                             x2, y2 = self.points[-1]
                             
-                            # Crear una forma cerrada
-                            shape_data = {
-                                'points': [[x1, y1], [x2, y1], [x2, y2], [x1, y2], [x1, y1]],
-                                'color': self.current_color,
-                                'line_width': self.line_width
-                            }
-                            self.draw_lib.draw_shape("polygon", shape_data)
+                            # Calcular el ancho y alto del rectángulo
+                            width = abs(x2 - x1)
+                            height = abs(y2 - y1)
+                            
+                            # Asegurar que x1,y1 es la esquina superior izquierda
+                            if x1 > x2:
+                                x1, x2 = x2, x1
+                            if y1 > y2:
+                                y1, y2 = y2, y1
+                            
+                            # Crear puntos de control para una curva cerrada suave
+                            # Esquinas del rectángulo
+                            p1 = [x1, y1]  # Superior izquierda
+                            p2 = [x2, y1]  # Superior derecha
+                            p3 = [x2, y2]  # Inferior derecha
+                            p4 = [x1, y2]  # Inferior izquierda
+                            
+                            # Puntos de control para cada segmento (para suavizar las esquinas)
+                            # Superior: p1 a p2
+                            c1 = [x1 + width/3, y1]
+                            c2 = [x2 - width/3, y1]
+                            
+                            # Derecha: p2 a p3
+                            c3 = [x2, y1 + height/3]
+                            c4 = [x2, y2 - height/3]
+                            
+                            # Inferior: p3 a p4
+                            c5 = [x2 - width/3, y2]
+                            c6 = [x1 + width/3, y2]
+                            
+                            # Izquierda: p4 a p1
+                            c7 = [x1, y2 - height/3]
+                            c8 = [x1, y1 + height/3]
+                            
+                            # Dibujar los cuatro segmentos de la curva cerrada
+                            segments = [
+                                {'points': [p1, c1, c2, p2], 'color': self.current_color, 'line_width': self.line_width},
+                                {'points': [p2, c3, c4, p3], 'color': self.current_color, 'line_width': self.line_width},
+                                {'points': [p3, c5, c6, p4], 'color': self.current_color, 'line_width': self.line_width},
+                                {'points': [p4, c7, c8, p1], 'color': self.current_color, 'line_width': self.line_width}
+                            ]
+                            
+                            for segment in segments:
+                                self.draw_lib.draw_shape("curve", segment)
                         
                         elif self.current_tool == "polygon":
                             # Crear un polígono regular de 6 lados

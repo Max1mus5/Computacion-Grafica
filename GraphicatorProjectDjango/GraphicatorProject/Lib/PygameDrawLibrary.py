@@ -575,51 +575,72 @@ class CurveAlgorithm(DrawingAlgorithm):
     pass
 
 class BezierCurveAlgorithm(CurveAlgorithm):
-    """Implementación del algoritmo para dibujar curvas de Bézier cuadráticas usando Bresenham para las líneas."""
-    
+    """Implementación del algoritmo para dibujar curvas de Bézier cuadráticas y cúbicas usando Bresenham para las líneas."""
+
     def __init__(self):
         super().__init__("BASIC")
-    
+
     def draw(self, surface, shape_data, canvas_rect=None):
         """
-        Dibuja una curva de Bézier cuadrática usando el algoritmo de Bresenham para las líneas.
-        
+        Dibuja una curva de Bézier usando el algoritmo de Bresenham para las líneas.
+        Soporta curvas cuadráticas (3 puntos) y cúbicas (4 puntos).
+
         Args:
             surface (pygame.Surface): Superficie donde se dibujará.
-            shape_data (dict): Datos de la curva (points, color, line_width, steps).
+            shape_data (dict): Datos de la curva (points, color, line_width, steps, closed).
             canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
         """
-        points = shape_data.get('points', [])
-        color = shape_data.get('color', (0, 0, 0))
-        line_width = shape_data.get('line_width', 1)
-        steps = shape_data.get('steps', 100)
-        
+        points = shape_data.get("points", [])
+        color = shape_data.get("color", (0, 0, 0))
+        line_width = shape_data.get("line_width", 1)
+        steps = shape_data.get("steps", 100)
+        closed = shape_data.get("closed", False)
+
         if len(points) < 3:
             return
-        
-        p0, p1, p2 = points[0], points[1], points[2]
+
         curve_points = []
-        
+
         try:
             # Calcular los puntos de la curva de Bézier
             steps_int = int(steps)
-            for i in range(steps_int + 1):
-                t = i / steps
-                # Fórmula de la curva de Bézier cuadrática
-                x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
-                y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
-                curve_points.append((int(x), int(y)))
             
+            if len(points) == 3:
+                # Curva cuadrática (3 puntos de control)
+                p0, p1, p2 = points[0], points[1], points[2]
+                
+                for i in range(steps_int + 1):
+                    t = i / steps
+                    # Fórmula de la curva de Bézier cuadrática
+                    x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
+                    y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
+                    curve_points.append((int(x), int(y)))
+            
+            elif len(points) == 4:
+                # Curva cúbica (4 puntos de control)
+                p0, p1, p2, p3 = points[0], points[1], points[2], points[3]
+                
+                for i in range(steps_int + 1):
+                    t = i / steps
+                    # Fórmula de la curva de Bézier cúbica
+                    x = (1-t)**3 * p0[0] + 3*(1-t)**2*t * p1[0] + 3*(1-t)*t**2 * p2[0] + t**3 * p3[0]
+                    y = (1-t)**3 * p0[1] + 3*(1-t)**2*t * p1[1] + 3*(1-t)*t**2 * p2[1] + t**3 * p3[1]
+                    curve_points.append((int(x), int(y)))
+            
+            # Si es una curva cerrada, añadir el primer punto al final
+            if closed and curve_points:
+                curve_points.append(curve_points[0])
+
             # Usar el algoritmo de Bresenham para dibujar las líneas entre los puntos
             bresenham = BresenhamLineAlgorithm()
-            
+
             for i in range(len(curve_points) - 1):
                 # Verificar si los puntos están dentro del canvas
                 if canvas_rect is None or canvas_rect.collidepoint(curve_points[i]) or canvas_rect.collidepoint(curve_points[i + 1]):
                     line_data = {
-                        'points': [curve_points[i], curve_points[i + 1]],
-                        'color': color,
-                        'line_width': line_width
+                        "points": [curve_points[i], curve_points[i + 1]],
+                        "color": color,
+                        "line_width": line_width
                     }
                     bresenham.draw(surface, line_data, canvas_rect)
         except Exception as e:
@@ -627,7 +648,6 @@ class BezierCurveAlgorithm(CurveAlgorithm):
 
 class BezierCurveBresenhamAlgorithm(CurveAlgorithm):
     """Implementación de curvas de Bézier utilizando el algoritmo de Bresenham para líneas."""
-    
     def __init__(self):
         super().__init__("BASIC")
     
