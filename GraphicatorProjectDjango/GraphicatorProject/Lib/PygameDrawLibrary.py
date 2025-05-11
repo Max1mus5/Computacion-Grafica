@@ -1302,6 +1302,39 @@ class PygameDrawLibrary:
         print(f"DEBUG: Dibujando círculo en {center} con radio {radius}")
         self.algorithms["circle"].draw(self.surface, shape_data, self.canvas_rect)
     
+    def draw_ellipse(self, center, radius_x, radius_y, color=(0, 0, 0), line_width=1):
+        """
+        Dibuja una elipse.
+        
+        Args:
+            center (tuple): Coordenadas del centro de la elipse (x, y).
+            radius_x (int): Radio horizontal de la elipse.
+            radius_y (int): Radio vertical de la elipse.
+            color (tuple): Color de la elipse en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        import math
+        
+        print(f"DEBUG: Dibujando elipse en {center} con radio_x {radius_x} y radio_y {radius_y}")
+        
+        # Crear puntos para la elipse
+        points = []
+        steps = 100  # Número de segmentos para la elipse
+        
+        for i in range(steps + 1):
+            angle = 2 * 3.14159265359 * i / steps
+            x = center[0] + int(radius_x * math.cos(angle))
+            y = center[1] + int(radius_y * math.sin(angle))
+            points.append((x, y))
+        
+        # Dibujar la elipse utilizando líneas
+        for i in range(len(points) - 1):
+            self.draw_line(points[i], points[i+1], color, line_width)
+        
+        # Cerrar la elipse
+        if len(points) > 1:
+            self.draw_line(points[-1], points[0], color, line_width)
+    
     def draw_rectangle(self, start_point, end_point, color=(0, 0, 0), line_width=1):
         """
         Dibuja un rectángulo.
@@ -1394,17 +1427,26 @@ class PygameDrawLibrary:
         control_points = points[-4:]
         print(f"DEBUG: Dibujando curva de Bézier con los puntos: {control_points}")
         
-        # Crear shape_data para el algoritmo de curva
-        shape_data = {
-            'points': control_points,
-            'color': color,
-            'line_width': line_width,
-            'steps': 100,
-            'closed': is_closed
-        }
+        # Crear puntos para la curva de Bézier cúbica
+        curve_points = []
+        steps = 100  # Número de segmentos para la curva
         
-        # Usar el algoritmo de curva de Bézier
-        self.algorithms["curve"].draw(self.surface, shape_data, self.canvas_rect)
+        p0, p1, p2, p3 = control_points
+        
+        for i in range(steps + 1):
+            t = i / steps
+            # Fórmula de la curva de Bézier cúbica
+            x = (1-t)**3 * p0[0] + 3*(1-t)**2*t * p1[0] + 3*(1-t)*t**2 * p2[0] + t**3 * p3[0]
+            y = (1-t)**3 * p0[1] + 3*(1-t)**2*t * p1[1] + 3*(1-t)*t**2 * p2[1] + t**3 * p3[1]
+            curve_points.append((int(x), int(y)))
+        
+        # Dibujar la curva utilizando líneas
+        for i in range(len(curve_points) - 1):
+            self.draw_line(curve_points[i], curve_points[i+1], color, line_width)
+        
+        # Si es cerrada, conectar el último punto con el primero
+        if is_closed and len(curve_points) > 1:
+            self.draw_line(curve_points[-1], curve_points[0], color, line_width)
     
     def erase_area(self, start_point, end_point, erase_color=(255, 255, 255)):
         """
