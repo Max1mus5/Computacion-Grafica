@@ -23,7 +23,8 @@ class GraphicatorLocalApp:
         pygame.init()
         self.width = width
         self.height = height
-        self.screen = pygame.display.set_mode((width, height))
+        # Crear una ventana redimensionable
+        self.screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
         pygame.display.set_caption("Graficador Pygame - Computación Gráfica")
         
         # Colores
@@ -79,10 +80,10 @@ class GraphicatorLocalApp:
         self.show_grid = True
         self.active_tab = "draw"  # Pestaña activa por defecto
         
-        # Calcular dimensiones del panel y canvas
-        self.panel_width = int(self.width * 0.2)  # 20% del ancho
+        # Establecer dimensiones del panel y canvas
+        self.panel_width = 200  # Ancho fijo del panel lateral
         self.canvas_width = self.width - self.panel_width
-        self.canvas_height = self.height - 32  # Altura menos la barra de estado
+        self.canvas_height = self.height  # Usar toda la altura disponible
         
         # Crear superficie para el canvas
         self.canvas_surface = pygame.Surface((self.canvas_width, self.canvas_height))
@@ -107,6 +108,18 @@ class GraphicatorLocalApp:
         """Dibuja la interfaz de usuario."""
         # Limpiar la pantalla con el color de fondo
         self.screen.fill(self.UI_COLORS['background'])
+        
+        # Actualizar dimensiones del canvas en caso de redimensionamiento
+        self.canvas_width = max(1, self.width - self.panel_width)
+        self.canvas_height = max(1, self.height)
+        
+        # Si el tamaño del canvas ha cambiado, recrearlo
+        if self.canvas_surface.get_width() != self.canvas_width or self.canvas_surface.get_height() != self.canvas_height:
+            old_canvas = self.canvas_surface.copy()
+            self.canvas_surface = pygame.Surface((self.canvas_width, self.canvas_height))
+            self.canvas_surface.fill(self.UI_COLORS['canvas_bg'])
+            self.canvas_surface.blit(old_canvas, (0, 0))
+            self.draw_lib = PygameDrawLibrary(self.canvas_surface)
         
         # Definir áreas de la interfaz
         panel_width = self.panel_width
@@ -351,24 +364,31 @@ class GraphicatorLocalApp:
             "grid": "Cuadrícula"
         }
         
+        # Dibujar barra de estado
+        status_bar_rect = pygame.Rect(0, self.height - 30, self.width, 30)
+        pygame.draw.rect(self.screen, self.UI_COLORS['status_bar'], status_bar_rect)
+        
+        # Información de herramienta
         tool_status = self.font_small.render(f"Herramienta: {tool_names.get(self.current_tool, self.current_tool)}", 
                                            True, self.UI_COLORS['text_secondary'])
-        self.screen.blit(tool_status, (16, self.height - 24))
+        self.screen.blit(tool_status, (16, self.height - 20))
         
+        # Información de color
         color_hex = f"#{self.current_color[0]:02X}{self.current_color[1]:02X}{self.current_color[2]:02X}"
         color_status = self.font_small.render(f"Color: {color_hex}", True, self.UI_COLORS['text_secondary'])
-        self.screen.blit(color_status, (180, self.height - 24))
         
+        # Posicionar información de color según el ancho de la ventana
+        color_x = min(180, max(tool_status.get_width() + 30, self.panel_width + 20))
+        self.screen.blit(color_status, (color_x, self.height - 20))
+        
+        # Información de grosor
         stroke_status = self.font_small.render(f"Grosor: {self.line_width}px", True, self.UI_COLORS['text_secondary'])
-        self.screen.blit(stroke_status, (300, self.height - 24))
+        stroke_x = min(300, max(color_x + color_status.get_width() + 30, self.panel_width + 120))
+        self.screen.blit(stroke_status, (stroke_x, self.height - 20))
         
-        # Información del desarrollador
+        # Información del desarrollador - centrada en la ventana
         dev_text = self.font_small.render("Desarrollado por Jeronimo Riveros Perea", True, self.UI_COLORS['text_secondary'])
-        self.screen.blit(dev_text, (self.width // 2 - dev_text.get_width() // 2, self.height - 24))
-        
-        # Mensaje de estado
-        status_text = self.font_small.render("Listo", True, self.UI_COLORS['text_secondary'])
-        self.screen.blit(status_text, (self.width - status_text.get_width() - 16, self.height - 24))
+        self.screen.blit(dev_text, (self.width - dev_text.get_width() - 16, self.height - 20))
     
     def draw_grid(self):
         """Dibuja la cuadrícula en el área del canvas."""
@@ -376,15 +396,23 @@ class GraphicatorLocalApp:
         canvas_width = self.canvas_width
         canvas_height = self.canvas_height
         canvas_rect = pygame.Rect(panel_width, 0, canvas_width, canvas_height)
+
+        # Ajustar el tamaño de la cuadrícula según el tamaño de la ventana
+        # Más pequeño para ventanas grandes, más grande para ventanas pequeñas
+        base_grid_size = 40
+        window_scale = min(1.0, max(0.5, self.width / 1024))  # Escala entre 0.5 y 1.0
+        grid_size = int(base_grid_size * window_scale)
+        grid_size = max(20, grid_size)  # Asegurar un tamaño mínimo de 20px
         
-        grid_size = 40
+        # Dibujar líneas verticales
         for x in range(canvas_rect.left, canvas_rect.right, grid_size):
-            pygame.draw.line(self.screen, self.UI_COLORS['grid'], (x, canvas_rect.top), 
+            pygame.draw.line(self.screen, self.UI_COLORS["grid"], (x, canvas_rect.top),
                            (x, canvas_rect.bottom), 1)
+        
+        # Dibujar líneas horizontales
         for y in range(canvas_rect.top, canvas_rect.bottom, grid_size):
-            pygame.draw.line(self.screen, self.UI_COLORS['grid'], (canvas_rect.left, y), 
+            pygame.draw.line(self.screen, self.UI_COLORS["grid"], (canvas_rect.left, y),
                            (canvas_rect.right, y), 1)
-    
     def handle_events(self):
         """Maneja los eventos de Pygame."""
         # Definir áreas de la interfaz
@@ -434,6 +462,25 @@ class GraphicatorLocalApp:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+            
+            # Manejo del redimensionamiento de la ventana
+            elif event.type == pygame.VIDEORESIZE:
+                # Actualizar el tamaño de la ventana
+                self.width, self.height = event.size
+                self.screen = pygame.display.set_mode((self.width, self.height), pygame.RESIZABLE)
+                
+                # Actualizar el tamaño del canvas
+                self.canvas_width = max(1, self.width - self.panel_width)
+                self.canvas_height = max(1, self.height)
+                
+                # Crear un nuevo canvas con el tamaño actualizado
+                old_canvas = self.canvas_surface.copy()
+                self.canvas_surface = pygame.Surface((self.canvas_width, self.canvas_height))
+                self.canvas_surface.fill(self.UI_COLORS['canvas_bg'])
+                
+                # Copiar el contenido del canvas anterior al nuevo
+                self.canvas_surface.blit(old_canvas, (0, 0))
+                print(f"DEBUG: Ventana redimensionada a {self.width}x{self.height}")
             
             # Manejo de teclas
             elif event.type == pygame.KEYDOWN:
@@ -910,6 +957,7 @@ class GraphicatorLocalApp:
 def run_local_app():
     """Función para iniciar la aplicación local."""
     print("Iniciando aplicación local con Pygame...")
+    # Iniciar con una resolución estándar, pero permitiendo redimensionamiento
     app = GraphicatorLocalApp(width=1024, height=768)
     app.run()
 
