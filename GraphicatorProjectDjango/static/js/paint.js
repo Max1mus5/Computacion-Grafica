@@ -1249,8 +1249,8 @@ document.addEventListener('DOMContentLoaded', function() {
             setActiveTool('erase-free');
         }
         
-        // Borrador de área con D
-        if (e.key.toLowerCase() === 'd') {
+        // Borrador de área con W
+        if (e.key.toLowerCase() === 'w') {
             setActiveTool('erase-area');
         }
         

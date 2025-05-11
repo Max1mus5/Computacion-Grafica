@@ -200,6 +200,7 @@ class BresenhamCircleAlgorithm(CircleAlgorithm):
             shape_data (dict): Datos del círculo (center, radius, color, line_width).
             canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
         """
+        print("DEBUG: BresenhamCircleAlgorithm.draw() llamado")
         points = shape_data.get('points', [])
         color = shape_data.get('color', (0, 0, 0))
         line_width = shape_data.get('line_width', 1)
@@ -678,6 +679,7 @@ class EraseAreaAlgorithm(EraseAlgorithm):
             shape_data (dict): Datos del área (points, erase_color).
             canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
         """
+        print("DEBUG: EraseAreaAlgorithm.draw() llamado")
         points = shape_data.get('points', [])
         erase_color = shape_data.get('erase_color', (255, 255, 255))
         
@@ -708,6 +710,7 @@ class FreehandEraseAlgorithm(EraseAlgorithm):
             shape_data (dict): Datos de la línea (points, erase_color, line_width).
             canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
         """
+        print("DEBUG: FreehandEraseAlgorithm.draw() llamado")
         points = shape_data.get('points', [])
         erase_color = shape_data.get('erase_color', (255, 255, 255))
         line_width = shape_data.get('line_width', 1)

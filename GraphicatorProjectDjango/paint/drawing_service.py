@@ -260,15 +260,18 @@ class DrawingServiceExtended(DrawingService):
             dict: Respuesta con el estado de la operación y la imagen resultante
         """
         try:
+            print("DEBUG: DrawingService.erase() llamado")
             erase_type = erase_data.get('type', 'free')
             
             if erase_type == 'free':
+                print("DEBUG: Borrado libre")
                 point = erase_data.get('point', [0, 0])
                 size = erase_data.get('size', 10)
                 # Dibujar un círculo blanco para simular el borrado
                 self.draw_lib.draw_circle(point, size // 2, (255, 255, 255), 0)
             
             elif erase_type == 'area':
+                print("DEBUG: Borrado de área")
                 start_point = erase_data.get('start_point', [0, 0])
                 end_point = erase_data.get('end_point', [100, 100])
                 # Dibujar un rectángulo blanco para borrar el área
