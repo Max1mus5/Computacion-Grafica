@@ -93,7 +93,9 @@ class BresenhamLineAlgorithm(LineAlgorithm):
         y_step = 1 if y1 < y2 else -1
         
         # Dibujar la línea
-        for x in range(x1, x2 + 1):
+        # Asegurarse de que los valores sean enteros para range()
+        x1_int, x2_int = int(x1), int(x2)
+        for x in range(x1_int, x2_int + 1):
             # Determinar el punto a dibujar según la pendiente
             point = (y, x) if steep else (x, y)
             
@@ -144,7 +146,9 @@ class DDALineAlgorithm(LineAlgorithm):
         y_increment = dy / steps
         x, y = x1, y1
         
-        for _ in range(steps + 1):
+        # Asegurarse de que steps sea un entero para range()
+        steps_int = int(steps)
+        for _ in range(steps_int + 1):
             if canvas_rect is None or canvas_rect.collidepoint(round(x), round(y)):
                 pygame.draw.circle(surface, color, (round(x), round(y)), max(1, line_width // 2))
             x += x_increment
@@ -571,50 +575,72 @@ class CurveAlgorithm(DrawingAlgorithm):
     pass
 
 class BezierCurveAlgorithm(CurveAlgorithm):
-    """Implementación del algoritmo para dibujar curvas de Bézier cuadráticas usando Bresenham para las líneas."""
-    
+    """Implementación del algoritmo para dibujar curvas de Bézier cuadráticas y cúbicas usando Bresenham para las líneas."""
+
     def __init__(self):
         super().__init__("BASIC")
-    
+
     def draw(self, surface, shape_data, canvas_rect=None):
         """
-        Dibuja una curva de Bézier cuadrática usando el algoritmo de Bresenham para las líneas.
-        
+        Dibuja una curva de Bézier usando el algoritmo de Bresenham para las líneas.
+        Soporta curvas cuadráticas (3 puntos) y cúbicas (4 puntos).
+
         Args:
             surface (pygame.Surface): Superficie donde se dibujará.
-            shape_data (dict): Datos de la curva (points, color, line_width, steps).
+            shape_data (dict): Datos de la curva (points, color, line_width, steps, closed).
             canvas_rect (pygame.Rect, optional): Rectángulo que define el área de dibujo.
         """
-        points = shape_data.get('points', [])
-        color = shape_data.get('color', (0, 0, 0))
-        line_width = shape_data.get('line_width', 1)
-        steps = shape_data.get('steps', 100)
-        
+        points = shape_data.get("points", [])
+        color = shape_data.get("color", (0, 0, 0))
+        line_width = shape_data.get("line_width", 1)
+        steps = shape_data.get("steps", 100)
+        closed = shape_data.get("closed", False)
+
         if len(points) < 3:
             return
-        
-        p0, p1, p2 = points[0], points[1], points[2]
+
         curve_points = []
-        
+
         try:
             # Calcular los puntos de la curva de Bézier
-            for i in range(steps + 1):
-                t = i / steps
-                # Fórmula de la curva de Bézier cuadrática
-                x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
-                y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
-                curve_points.append((int(x), int(y)))
+            steps_int = int(steps)
             
+            if len(points) == 3:
+                # Curva cuadrática (3 puntos de control)
+                p0, p1, p2 = points[0], points[1], points[2]
+                
+                for i in range(steps_int + 1):
+                    t = i / steps
+                    # Fórmula de la curva de Bézier cuadrática
+                    x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
+                    y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
+                    curve_points.append((int(x), int(y)))
+            
+            elif len(points) == 4:
+                # Curva cúbica (4 puntos de control)
+                p0, p1, p2, p3 = points[0], points[1], points[2], points[3]
+                
+                for i in range(steps_int + 1):
+                    t = i / steps
+                    # Fórmula de la curva de Bézier cúbica
+                    x = (1-t)**3 * p0[0] + 3*(1-t)**2*t * p1[0] + 3*(1-t)*t**2 * p2[0] + t**3 * p3[0]
+                    y = (1-t)**3 * p0[1] + 3*(1-t)**2*t * p1[1] + 3*(1-t)*t**2 * p2[1] + t**3 * p3[1]
+                    curve_points.append((int(x), int(y)))
+            
+            # Si es una curva cerrada, añadir el primer punto al final
+            if closed and curve_points:
+                curve_points.append(curve_points[0])
+
             # Usar el algoritmo de Bresenham para dibujar las líneas entre los puntos
             bresenham = BresenhamLineAlgorithm()
-            
+
             for i in range(len(curve_points) - 1):
                 # Verificar si los puntos están dentro del canvas
                 if canvas_rect is None or canvas_rect.collidepoint(curve_points[i]) or canvas_rect.collidepoint(curve_points[i + 1]):
                     line_data = {
-                        'points': [curve_points[i], curve_points[i + 1]],
-                        'color': color,
-                        'line_width': line_width
+                        "points": [curve_points[i], curve_points[i + 1]],
+                        "color": color,
+                        "line_width": line_width
                     }
                     bresenham.draw(surface, line_data, canvas_rect)
         except Exception as e:
@@ -622,7 +648,6 @@ class BezierCurveAlgorithm(CurveAlgorithm):
 
 class BezierCurveBresenhamAlgorithm(CurveAlgorithm):
     """Implementación de curvas de Bézier utilizando el algoritmo de Bresenham para líneas."""
-    
     def __init__(self):
         super().__init__("BASIC")
     
@@ -647,7 +672,8 @@ class BezierCurveBresenhamAlgorithm(CurveAlgorithm):
         curve_points = []
         
         try:
-            for i in range(steps + 1):
+            steps_int = int(steps)
+            for i in range(steps_int + 1):
                 t = i / steps
                 x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
                 y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
@@ -797,7 +823,8 @@ class FreehandDrawAlgorithm(DrawingAlgorithm):
             y_increment = dy / steps
             x, y = x1, y1
             
-            for _ in range(steps + 1):
+            steps_int = int(steps)
+            for _ in range(steps_int + 1):
                 pygame.draw.circle(surface, color, (round(x), round(y)), max(1, line_width // 2))
                 x += x_increment
                 y += y_increment
@@ -1275,6 +1302,39 @@ class PygameDrawLibrary:
         print(f"DEBUG: Dibujando círculo en {center} con radio {radius}")
         self.algorithms["circle"].draw(self.surface, shape_data, self.canvas_rect)
     
+    def draw_ellipse(self, center, radius_x, radius_y, color=(0, 0, 0), line_width=1):
+        """
+        Dibuja una elipse.
+        
+        Args:
+            center (tuple): Coordenadas del centro de la elipse (x, y).
+            radius_x (int): Radio horizontal de la elipse.
+            radius_y (int): Radio vertical de la elipse.
+            color (tuple): Color de la elipse en formato RGB.
+            line_width (int): Grosor de la línea.
+        """
+        import math
+        
+        print(f"DEBUG: Dibujando elipse en {center} con radio_x {radius_x} y radio_y {radius_y}")
+        
+        # Crear puntos para la elipse
+        points = []
+        steps = 100  # Número de segmentos para la elipse
+        
+        for i in range(steps + 1):
+            angle = 2 * 3.14159265359 * i / steps
+            x = center[0] + int(radius_x * math.cos(angle))
+            y = center[1] + int(radius_y * math.sin(angle))
+            points.append((x, y))
+        
+        # Dibujar la elipse utilizando líneas
+        for i in range(len(points) - 1):
+            self.draw_line(points[i], points[i+1], color, line_width)
+        
+        # Cerrar la elipse
+        if len(points) > 1:
+            self.draw_line(points[-1], points[0], color, line_width)
+    
     def draw_rectangle(self, start_point, end_point, color=(0, 0, 0), line_width=1):
         """
         Dibuja un rectángulo.
@@ -1347,6 +1407,46 @@ class PygameDrawLibrary:
         
         print(f"DEBUG: Dibujando trazo libre con {len(points)} puntos")
         self.algorithms["freehand"].draw(self.surface, shape_data, self.canvas_rect)
+        
+    def draw_bezier_curve(self, points, color=(0, 0, 0), line_width=1, is_closed=False):
+        """
+        Dibuja una curva de Bézier cúbica utilizando los 4 puntos proporcionados.
+        
+        Args:
+            points (list): Lista de puntos de control (se utilizarán los últimos 4 puntos).
+            color (tuple): Color de la curva en formato RGB.
+            line_width (int): Grosor de la línea.
+            is_closed (bool): Si es True, cierra la curva conectando el último punto con el primero.
+        """
+        # Asegurarse de que hay al menos 4 puntos
+        if len(points) < 4:
+            print(f"ERROR: Se necesitan al menos 4 puntos para una curva de Bézier cúbica, se proporcionaron {len(points)}")
+            return
+        
+        # Tomar los últimos 4 puntos
+        control_points = points[-4:]
+        print(f"DEBUG: Dibujando curva de Bézier con los puntos: {control_points}")
+        
+        # Crear puntos para la curva de Bézier cúbica
+        curve_points = []
+        steps = 100  # Número de segmentos para la curva
+        
+        p0, p1, p2, p3 = control_points
+        
+        for i in range(steps + 1):
+            t = i / steps
+            # Fórmula de la curva de Bézier cúbica
+            x = (1-t)**3 * p0[0] + 3*(1-t)**2*t * p1[0] + 3*(1-t)*t**2 * p2[0] + t**3 * p3[0]
+            y = (1-t)**3 * p0[1] + 3*(1-t)**2*t * p1[1] + 3*(1-t)*t**2 * p2[1] + t**3 * p3[1]
+            curve_points.append((int(x), int(y)))
+        
+        # Dibujar la curva utilizando líneas
+        for i in range(len(curve_points) - 1):
+            pygame.draw.line(self.surface, color, curve_points[i], curve_points[i+1], line_width)
+        
+        # Si es cerrada, conectar el último punto con el primero
+        if is_closed and len(curve_points) > 1:
+            pygame.draw.line(self.surface, color, curve_points[-1], curve_points[0], line_width)
     
     def erase_area(self, start_point, end_point, erase_color=(255, 255, 255)):
         """

@@ -8,6 +8,7 @@ import io
 import json
 import os
 import sys
+import tempfile
 from django.http import JsonResponse
 import pygame
 
